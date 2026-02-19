@@ -112,6 +112,67 @@ body::before {
 }
 
 /* ========================================
+   Loading Splash (shown during auth check)
+   ======================================== */
+
+.loading-splash {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+    z-index: 9999;
+    gap: var(--space-lg);
+}
+
+.loading-splash.hidden {
+    display: none;
+}
+
+.loading-logo {
+    width: 120px;
+    height: 120px;
+    border-radius: var(--radius-lg);
+    animation: pulse-logo 1.8s ease-in-out infinite;
+}
+
+.loading-title {
+    font-family: 'Atomic Age', cursive;
+    font-size: 2rem;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: pulse-logo 1.8s ease-in-out infinite;
+    margin: 0;
+}
+
+@keyframes pulse-logo {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(0.95);
+    }
+}
+
+.loading-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid rgba(99, 102, 241, 0.2);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* ========================================
    Login Screen
    ======================================== */
 

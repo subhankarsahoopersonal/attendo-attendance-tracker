@@ -30,7 +30,9 @@ const AuthManager = {
      * Called when user logs in
      */
     async onLogin(user) {
-        // Hide login screen, show app
+        // Hide loading splash & login screen, show app
+        const splash = document.getElementById('loading-splash');
+        if (splash) splash.classList.add('hidden');
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('app-container').classList.remove('hidden');
 
@@ -57,6 +59,9 @@ const AuthManager = {
      */
     onLogout() {
         this.currentUser = null;
+        // Hide loading splash, show login screen
+        const splash = document.getElementById('loading-splash');
+        if (splash) splash.classList.add('hidden');
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('app-container').classList.add('hidden');
     },
