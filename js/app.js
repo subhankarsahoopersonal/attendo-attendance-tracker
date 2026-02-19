@@ -43,9 +43,27 @@ const App = {
 
         // Mobile hamburger
         const hamburger = document.querySelector('.hamburger');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
         if (hamburger) {
             hamburger.addEventListener('click', () => {
-                document.querySelector('.sidebar').classList.toggle('open');
+                const sidebar = document.querySelector('.sidebar');
+                sidebar.classList.toggle('open');
+                const isOpen = sidebar.classList.contains('open');
+                if (sidebarOverlay) sidebarOverlay.classList.toggle('active', isOpen);
+                // Lock/unlock body scroll
+                document.body.style.overflow = isOpen ? 'hidden' : '';
+                // Close chatbot if open
+                document.querySelector('.chat-window').classList.remove('active');
+                document.querySelector('.chat-fab').classList.remove('active');
+            });
+        }
+
+        // Close sidebar when tapping the overlay
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                document.querySelector('.sidebar').classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
             });
         }
     },
@@ -68,8 +86,11 @@ const App = {
         if (pageId === 'timetable') this.renderTimetablePage();
         if (pageId === 'settings') this.renderSettingsPage();
 
-        // Close mobile menu if open
+        // Close mobile menu and overlay if open
         document.querySelector('.sidebar').classList.remove('open');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+        document.body.style.overflow = '';
     },
 
     checkRoute() {
@@ -683,12 +704,19 @@ const App = {
         fab.addEventListener('click', () => {
             window.classList.toggle('active');
             fab.classList.toggle('active');
+            // Lock/unlock body scroll
+            document.body.style.overflow = window.classList.contains('active') ? 'hidden' : '';
+            // Close sidebar if open
+            document.querySelector('.sidebar').classList.remove('open');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('active');
         });
 
         if (close) {
             close.addEventListener('click', () => {
                 window.classList.remove('active');
                 fab.classList.remove('active');
+                document.body.style.overflow = '';
             });
         }
 
