@@ -1317,7 +1317,8 @@ select.form-input option {
     bottom: 100px;
     right: var(--space-xl);
     width: 380px;
-    height: 500px;
+    height: auto;
+    max-height: min(500px, calc(100vh - 120px));
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
@@ -1451,6 +1452,7 @@ select.form-input option {
     flex-wrap: wrap;
     gap: var(--space-sm);
     margin-top: var(--space-sm);
+    padding: 0 var(--space-md);
 }
 
 .quick-action {
@@ -2057,8 +2059,10 @@ select.form-input option {
         left: var(--space-md);
         right: var(--space-md);
         width: auto;
-        bottom: 80px;
-        height: 60vh;
+        bottom: 72px;
+        height: auto;
+        max-height: calc(100vh - 90px);
+        top: auto;
     }
 
     .chat-fab {
@@ -2231,11 +2235,13 @@ select.form-input option {
 
     /* Chat window takes more space */
     .chat-window {
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 70vh;
-        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        left: var(--space-sm);
+        right: var(--space-sm);
+        bottom: 64px;
+        height: auto;
+        max-height: calc(100vh - 80px);
+        top: auto;
+        border-radius: var(--radius-xl);
     }
 
     .chat-fab {
