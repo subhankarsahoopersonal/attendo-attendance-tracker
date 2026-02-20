@@ -9,7 +9,8 @@ const StorageManager = {
         TIMETABLE: 'bunkManager_timetable',
         HISTORY: 'bunkManager_history',
         SETTINGS: 'bunkManager_settings',
-        EXTRA_CLASSES: 'bunkManager_extraClasses'
+        EXTRA_CLASSES: 'bunkManager_extraClasses',
+        NOTES: 'bunkManager_notes'
     },
 
     // Default settings
@@ -47,6 +48,9 @@ const StorageManager = {
         }
         if (!this.getExtraClasses().length) {
             this.setExtraClasses([]);
+        }
+        if (!this.getNotes() || typeof this.getNotes() !== 'object') {
+            this.setNotes({});
         }
     },
 
@@ -368,6 +372,55 @@ const StorageManager = {
     },
 
     // ========================================
+    // Notes (Recurring per-slot)
+    // ========================================
+
+    /**
+     * Get all notes
+     * @returns {Object} { slotId: "note text", ... }
+     */
+    getNotes() {
+        try {
+            return JSON.parse(localStorage.getItem(this.KEYS.NOTES)) || {};
+        } catch {
+            return {};
+        }
+    },
+
+    /**
+     * Save notes object
+     * @param {Object} notes
+     */
+    setNotes(notes) {
+        localStorage.setItem(this.KEYS.NOTES, JSON.stringify(notes));
+    },
+
+    /**
+     * Get note for a specific slot
+     * @param {string} slotId
+     * @returns {string}
+     */
+    getNote(slotId) {
+        const notes = this.getNotes();
+        return notes[slotId] || '';
+    },
+
+    /**
+     * Set note for a specific slot (deletes key if text is empty)
+     * @param {string} slotId
+     * @param {string} text
+     */
+    setNote(slotId, text) {
+        const notes = this.getNotes();
+        if (text && text.trim()) {
+            notes[slotId] = text.trim();
+        } else {
+            delete notes[slotId];
+        }
+        this.setNotes(notes);
+    },
+
+    // ========================================
     // Attendance History
     // ========================================
 
@@ -540,7 +593,8 @@ const StorageManager = {
             subjects: this.getSubjects(),
             timetable: this.getTimetable(),
             history: this.getHistory(),
-            settings: this.getSettings()
+            settings: this.getSettings(),
+            notes: this.getNotes()
         };
         return JSON.stringify(data, null, 2);
     },
@@ -564,6 +618,7 @@ const StorageManager = {
             if (data.timetable) this.setTimetable(data.timetable);
             if (data.history) this.setHistory(data.history);
             if (data.settings) this.setSettings({ ...this.DEFAULT_SETTINGS, ...data.settings });
+            if (data.notes) this.setNotes(data.notes);
 
             return true;
         } catch (error) {
@@ -646,6 +701,7 @@ const FirestoreSync = {
             batch.set(ref.doc('extraClasses'), {
                 items: StorageManager.getExtraClasses()
             });
+            batch.set(ref.doc('notes'), StorageManager.getNotes());
 
             await batch.commit();
             console.log('Data pushed to Firestore');
@@ -686,6 +742,9 @@ const FirestoreSync = {
                         break;
                     case 'extraClasses':
                         StorageManager.setExtraClasses(data.items || [], true);
+                        break;
+                    case 'notes':
+                        StorageManager.setNotes(data || {}, true);
                         break;
                 }
             });
@@ -730,6 +789,9 @@ const FirestoreSync = {
                 case 'extraClasses':
                     data = { items: StorageManager.getExtraClasses() };
                     break;
+                case 'notes':
+                    data = StorageManager.getNotes();
+                    break;
                 default:
                     return;
             }
@@ -752,6 +814,7 @@ const FirestoreSync = {
         setHistory: StorageManager.setHistory.bind(StorageManager),
         setSettings: StorageManager.setSettings.bind(StorageManager),
         setExtraClasses: StorageManager.setExtraClasses.bind(StorageManager),
+        setNotes: StorageManager.setNotes.bind(StorageManager),
     };
 
     StorageManager.setSubjects = function (subjects, skipSync) {
@@ -777,5 +840,10 @@ const FirestoreSync = {
     StorageManager.setExtraClasses = function (extraClasses, skipSync) {
         original.setExtraClasses(extraClasses);
         if (!skipSync) FirestoreSync.syncKey('extraClasses');
+    };
+
+    StorageManager.setNotes = function (notes, skipSync) {
+        original.setNotes(notes);
+        if (!skipSync) FirestoreSync.syncKey('notes');
     };
 })();

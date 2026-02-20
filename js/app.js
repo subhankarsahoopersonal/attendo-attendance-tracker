@@ -124,15 +124,29 @@ const App = {
 
             const dayClasses = StorageManager.getClassesForDay(day);
 
-            let classesHtml = dayClasses.map(slot => `
-        <div class="timetable-slot-item" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); border-radius: var(--radius-md); border-left: 3px solid ${slot.subject ? slot.subject.color : '#666'}">
-          <div style="display:flex; flex-direction:column;">
-            <span class="slot-time" style="font-size: var(--font-size-xs); color: var(--text-muted);">${slot.time}${slot.endTime ? ' - ' + slot.endTime : ''}</span>
-            <span class="slot-subject" style="font-weight: 500;">${slot.subject ? slot.subject.name : 'Unknown Subject'}</span>
+            const notes = StorageManager.getNotes();
+            let classesHtml = dayClasses.map(slot => {
+                const hasNote = !!notes[slot.id];
+                const noteText = notes[slot.id] || '';
+                return `
+        <div class="timetable-slot-item" style="display: flex; flex-wrap: wrap; background: var(--bg-card); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); border-radius: var(--radius-md); border-left: 3px solid ${slot.subject ? slot.subject.color : '#666'}">
+          <div style="display:flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div style="display:flex; flex-direction:column;">
+              <span class="slot-time" style="font-size: var(--font-size-xs); color: var(--text-muted);">${slot.time}${slot.endTime ? ' - ' + slot.endTime : ''}</span>
+              <span class="slot-subject" style="font-weight: 500;">${slot.subject ? slot.subject.name : 'Unknown Subject'}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap: 4px;">
+              <button class="btn-note ${hasNote ? 'has-note' : ''}" onclick="App.toggleSlotNote('${slot.id}')" title="${hasNote ? 'Edit note' : 'Add note'}">📝</button>
+              <button class="btn-icon-sm" style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="App.deleteSlot('${day}', '${slot.id}')">×</button>
+            </div>
           </div>
-          <button class="btn-icon-sm" style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="App.deleteSlot('${day}', '${slot.id}')">×</button>
+          <div class="slot-note-editor" id="note-editor-${slot.id}" style="display:none; width:100%;">
+            <textarea class="slot-note-textarea" id="note-textarea-${slot.id}" placeholder="Add a recurring note for this class…" onblur="App.saveSlotNote('${slot.id}')">${noteText}</textarea>
+          </div>
+          ${hasNote ? `<div class="slot-note-preview" onclick="App.toggleSlotNote('${slot.id}')" title="Click to edit">📌 ${noteText}</div>` : ''}
         </div>
-      `).join('');
+      `;
+            }).join('');
 
             dayColumn.innerHTML = `
         <div class="day-header" style="text-transform: uppercase; font-size: var(--font-size-sm); font-weight: 600; color: var(--text-secondary); margin-bottom: var(--space-md); display:flex; justify-content:space-between; align-items:center;">
@@ -688,6 +702,29 @@ const App = {
             this.renderTimetablePage();
             DashboardUI.init();
         }
+    },
+
+    // ========================================
+    // Slot Notes
+    // ========================================
+
+    toggleSlotNote(slotId) {
+        const editor = document.getElementById(`note-editor-${slotId}`);
+        if (!editor) return;
+        const isVisible = editor.style.display !== 'none';
+        editor.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) {
+            const textarea = document.getElementById(`note-textarea-${slotId}`);
+            if (textarea) textarea.focus();
+        }
+    },
+
+    saveSlotNote(slotId) {
+        const textarea = document.getElementById(`note-textarea-${slotId}`);
+        if (!textarea) return;
+        StorageManager.setNote(slotId, textarea.value);
+        // Re-render to update preview and icon state
+        this.renderTimetablePage();
     },
 
     // ========================================

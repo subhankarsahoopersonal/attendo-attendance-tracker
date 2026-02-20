@@ -36,6 +36,7 @@ const DashboardUI = {
       const subject = slot.subject;
       if (!subject) return;
 
+      const noteText = StorageManager.getNote(slot.id);
       const el = document.createElement('div');
       el.className = `class-item ${slot.status ? 'marked' : ''}`;
       el.innerHTML = `
@@ -44,9 +45,12 @@ const DashboardUI = {
             <span>${slot.time}</span>
             ${slot.endTime ? `<span class="text-muted text-xs">-${slot.endTime}</span>` : ''}
           </div>
-          <div class="class-name">
-            <span class="subject-color" style="background: ${subject.color}"></span>
-            ${subject.name}
+          <div>
+            <div class="class-name">
+              <span class="subject-color" style="background: ${subject.color}"></span>
+              ${subject.name}
+            </div>
+            ${noteText ? `<div class="class-note-display">📌 ${noteText}</div>` : ''}
           </div>
         </div>
         <div class="class-actions">
