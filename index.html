@@ -242,9 +242,14 @@
             <section id="timetable-section" class="hidden fade-in">
                 <header class="page-header">
                     <h1 class="page-title">Manage Timetable</h1>
-                    <button class="btn btn-primary" onclick="App.openAddSubjectModal()">
-                        + New Subject
-                    </button>
+                    <div class="header-actions" style="display: flex; gap: var(--space-sm);">
+                        <button class="btn btn-primary" onclick="App.openQuickSetupWizard()">
+                            ⚡ Quick Setup
+                        </button>
+                        <button class="btn btn-secondary" onclick="App.openAddSubjectModal()">
+                            + New Subject
+                        </button>
+                    </div>
                 </header>
 
                 <div class="timetable-container card">

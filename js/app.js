@@ -927,6 +927,323 @@ const App = {
     },
 
     // ========================================
+    // Quick Setup Wizard
+    // ========================================
+
+    _quickSetupState: null,
+    _quickSetupColors: ['#6366f1', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#14b8a6', '#f97316', '#84cc16'],
+    _quickSetupDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+
+    openQuickSetupWizard() {
+        this._quickSetupState = {
+            step: 1,
+            subjects: [],
+            selectedColor: this._quickSetupColors[0],
+            slots: {}
+        };
+        // Pre-fill days
+        this._quickSetupDays.forEach(d => this._quickSetupState.slots[d] = []);
+
+        this.openModal('⚡ Quick Setup', '');
+        this.renderQuickSetup();
+    },
+
+    renderQuickSetup() {
+        const modalBody = document.querySelector('.modal-body');
+        if (!modalBody || !this._quickSetupState) return;
+        const state = this._quickSetupState;
+        const step = state.step;
+
+        // Stepper
+        const stepLabels = ['Subjects', 'Timetable', 'Review'];
+        const stepperHtml = `
+          <div class="qs-stepper">
+            ${stepLabels.map((label, i) => {
+            const num = i + 1;
+            const cls = num < step ? 'completed' : (num === step ? 'active' : '');
+            return `
+                <div class="qs-step ${cls}">
+                  <span class="qs-step-num">${num < step ? '✓' : num}</span>
+                  <span>${label}</span>
+                </div>
+                ${i < stepLabels.length - 1 ? `<div class="qs-step-line ${num < step ? 'completed' : ''}"></div>` : ''}
+              `;
+        }).join('')}
+          </div>
+        `;
+
+        let bodyHtml = '';
+
+        // === STEP 1: Subjects ===
+        if (step === 1) {
+            const colorDots = this._quickSetupColors.map(c =>
+                `<div class="qs-color-dot ${c === state.selectedColor ? 'selected' : ''}" style="background:${c}" onclick="App.quickSetupSelectColor('${c}')"></div>`
+            ).join('');
+
+            const chips = state.subjects.map((s, i) =>
+                `<div class="qs-chip">
+                    <span class="qs-chip-color" style="background:${s.color}"></span>
+                    <span>${s.name}</span>
+                    <button class="qs-chip-del" onclick="App.quickSetupRemoveSubject(${i})">×</button>
+                </div>`
+            ).join('');
+
+            bodyHtml = `
+              <div class="qs-subject-form">
+                <div class="form-group" style="flex:1">
+                  <label class="form-label">Subject Name</label>
+                  <input type="text" id="qs-subject-name" class="form-input" placeholder="e.g. Physics" onkeydown="if(event.key==='Enter'){event.preventDefault();App.quickSetupAddSubject()}">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Color</label>
+                  <div class="qs-color-row">${colorDots}</div>
+                </div>
+                <button class="btn btn-primary" onclick="App.quickSetupAddSubject()" style="height:38px;margin-bottom:0;">Add</button>
+              </div>
+              <div class="qs-chips">${chips}</div>
+              <p class="qs-hint">${state.subjects.length === 0 ? 'Add at least one subject to continue' : `${state.subjects.length} subject${state.subjects.length > 1 ? 's' : ''} added — add more or click Next`}</p>
+            `;
+        }
+
+        // === STEP 2: Timetable Grid ===
+        else if (step === 2) {
+            const subjectOptions = state.subjects.map((s, i) =>
+                `<option value="${i}">${s.name}</option>`
+            ).join('');
+
+            const dayColumns = this._quickSetupDays.map(day => {
+                const daySlots = state.slots[day];
+                let slotsHtml = '';
+
+                if (daySlots.length === 0) {
+                    slotsHtml = `<div class="qs-day-empty">No classes — click + to add</div>`;
+                } else {
+                    slotsHtml = daySlots.map((slot, idx) => `
+                      <div class="qs-slot-row">
+                        <select onchange="App.quickSetupUpdateSlot('${day}',${idx},'subjectIdx',this.value)">
+                          ${state.subjects.map((s, si) =>
+                        `<option value="${si}" ${si === slot.subjectIdx ? 'selected' : ''}>${s.name}</option>`
+                    ).join('')}
+                        </select>
+                        <input type="time" value="${slot.startTime}" onchange="App.quickSetupUpdateSlot('${day}',${idx},'startTime',this.value)">
+                        <input type="time" value="${slot.endTime || ''}" onchange="App.quickSetupUpdateSlot('${day}',${idx},'endTime',this.value)" placeholder="End">
+                        <button class="qs-slot-del" onclick="App.quickSetupRemoveSlot('${day}',${idx})">×</button>
+                      </div>
+                    `).join('');
+                }
+
+                return `
+                  <div class="qs-day-col">
+                    <div class="qs-day-header">
+                      <span>${day.slice(0, 3)}</span>
+                      <button class="qs-day-add" onclick="App.quickSetupAddSlot('${day}')">+</button>
+                    </div>
+                    ${slotsHtml}
+                  </div>
+                `;
+            }).join('');
+
+            bodyHtml = `
+              <div class="qs-grid">${dayColumns}</div>
+              <p class="qs-hint">Click + on each day to add classes. You can skip days with no classes.</p>
+            `;
+        }
+
+        // === STEP 3: Review ===
+        else if (step === 3) {
+            const subjectChips = state.subjects.map(s =>
+                `<div class="qs-chip"><span class="qs-chip-color" style="background:${s.color}"></span><span>${s.name}</span></div>`
+            ).join('');
+
+            const totalSlots = Object.values(state.slots).reduce((sum, arr) => sum + arr.length, 0);
+
+            let scheduleHtml = '';
+            const hasAnySlots = totalSlots > 0;
+
+            if (!hasAnySlots) {
+                scheduleHtml = `<div class="qs-review-empty">No classes scheduled. You can add them later from the timetable page.</div>`;
+            } else {
+                this._quickSetupDays.forEach(day => {
+                    const daySlots = state.slots[day];
+                    if (daySlots.length === 0) return;
+
+                    const slotRows = daySlots.map(slot => {
+                        const subj = state.subjects[slot.subjectIdx];
+                        return `
+                          <div class="qs-review-slot">
+                            <span class="qs-chip-color" style="background:${subj.color}"></span>
+                            <span>${subj.name}</span>
+                            <span style="color:var(--text-muted)">•</span>
+                            <span style="color:var(--text-muted)">${slot.startTime}${slot.endTime ? ' – ' + slot.endTime : ''}</span>
+                          </div>
+                        `;
+                    }).join('');
+
+                    scheduleHtml += `
+                      <div class="qs-review-day">
+                        <div class="qs-review-day-name">${day}</div>
+                        ${slotRows}
+                      </div>
+                    `;
+                });
+            }
+
+            bodyHtml = `
+              <div class="qs-review">
+                <div class="qs-review-section">
+                  <div class="qs-review-title">📚 ${state.subjects.length} Subject${state.subjects.length > 1 ? 's' : ''}</div>
+                  <div class="qs-review-subjects">${subjectChips}</div>
+                </div>
+                <div class="qs-review-section">
+                  <div class="qs-review-title">📅 ${totalSlots} Class${totalSlots !== 1 ? 'es' : ''} / Week</div>
+                  ${scheduleHtml}
+                </div>
+              </div>
+            `;
+        }
+
+        // Footer navigation
+        const footerHtml = `
+          <div class="qs-footer">
+            ${step > 1 ? `<button class="btn btn-ghost" onclick="App.quickSetupPrevStep()">← Back</button>` : `<div></div>`}
+            ${step < 3
+                ? `<button class="btn btn-primary" onclick="App.quickSetupNextStep()" ${step === 1 && state.subjects.length === 0 ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>Next →</button>`
+                : `<button class="btn btn-primary" onclick="App.quickSetupSave()">🚀 Save & Start</button>`
+            }
+          </div>
+        `;
+
+        modalBody.innerHTML = stepperHtml + bodyHtml + footerHtml;
+
+        // Auto-focus the subject name input on step 1
+        if (step === 1) {
+            setTimeout(() => {
+                const input = document.getElementById('qs-subject-name');
+                if (input) input.focus();
+            }, 100);
+        }
+    },
+
+    quickSetupSelectColor(color) {
+        if (!this._quickSetupState) return;
+        this._quickSetupState.selectedColor = color;
+        // Update dots without full re-render for snappiness
+        document.querySelectorAll('.qs-color-dot').forEach(dot => {
+            dot.classList.toggle('selected', dot.style.background === color || dot.style.backgroundColor === color);
+        });
+    },
+
+    quickSetupAddSubject() {
+        if (!this._quickSetupState) return;
+        const input = document.getElementById('qs-subject-name');
+        const name = input ? input.value.trim() : '';
+        if (!name) return;
+
+        // Check duplicate
+        if (this._quickSetupState.subjects.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+            input.style.borderColor = 'var(--color-danger)';
+            setTimeout(() => input.style.borderColor = '', 1000);
+            return;
+        }
+
+        this._quickSetupState.subjects.push({
+            name,
+            color: this._quickSetupState.selectedColor
+        });
+
+        // Auto-cycle to next color
+        const currentIdx = this._quickSetupColors.indexOf(this._quickSetupState.selectedColor);
+        this._quickSetupState.selectedColor = this._quickSetupColors[(currentIdx + 1) % this._quickSetupColors.length];
+
+        this.renderQuickSetup();
+    },
+
+    quickSetupRemoveSubject(index) {
+        if (!this._quickSetupState) return;
+        this._quickSetupState.subjects.splice(index, 1);
+
+        // Also remove any slots referencing this subject and adjust indexes
+        this._quickSetupDays.forEach(day => {
+            this._quickSetupState.slots[day] = this._quickSetupState.slots[day]
+                .filter(slot => slot.subjectIdx !== index)
+                .map(slot => ({
+                    ...slot,
+                    subjectIdx: slot.subjectIdx > index ? slot.subjectIdx - 1 : slot.subjectIdx
+                }));
+        });
+
+        this.renderQuickSetup();
+    },
+
+    quickSetupNextStep() {
+        if (!this._quickSetupState) return;
+        if (this._quickSetupState.step === 1 && this._quickSetupState.subjects.length === 0) return;
+        this._quickSetupState.step = Math.min(3, this._quickSetupState.step + 1);
+        this.renderQuickSetup();
+    },
+
+    quickSetupPrevStep() {
+        if (!this._quickSetupState) return;
+        this._quickSetupState.step = Math.max(1, this._quickSetupState.step - 1);
+        this.renderQuickSetup();
+    },
+
+    quickSetupAddSlot(day) {
+        if (!this._quickSetupState) return;
+        this._quickSetupState.slots[day].push({
+            subjectIdx: 0,
+            startTime: '09:30',
+            endTime: ''
+        });
+        this.renderQuickSetup();
+    },
+
+    quickSetupUpdateSlot(day, index, field, value) {
+        if (!this._quickSetupState) return;
+        const slot = this._quickSetupState.slots[day][index];
+        if (!slot) return;
+        if (field === 'subjectIdx') {
+            slot.subjectIdx = parseInt(value);
+        } else {
+            slot[field] = value;
+        }
+    },
+
+    quickSetupRemoveSlot(day, index) {
+        if (!this._quickSetupState) return;
+        this._quickSetupState.slots[day].splice(index, 1);
+        this.renderQuickSetup();
+    },
+
+    quickSetupSave() {
+        if (!this._quickSetupState) return;
+        const state = this._quickSetupState;
+
+        // 1. Create all subjects and map temp index → real ID
+        const idMap = {};
+        state.subjects.forEach((sub, idx) => {
+            const created = StorageManager.addSubject({ name: sub.name, color: sub.color });
+            idMap[idx] = created.id;
+        });
+
+        // 2. Create all timetable slots
+        this._quickSetupDays.forEach(day => {
+            state.slots[day].forEach(slot => {
+                const realSubjectId = idMap[slot.subjectIdx];
+                if (realSubjectId && slot.startTime) {
+                    TimetableManager.addClass(day, realSubjectId, slot.startTime, slot.endTime || null);
+                }
+            });
+        });
+
+        // 3. Close and refresh
+        this._quickSetupState = null;
+        document.querySelector('.modal-overlay').classList.remove('active');
+        this.renderTimetablePage();
+        DashboardUI.init();
+    },
+
+    // ========================================
     // Utils
     // ========================================
 
