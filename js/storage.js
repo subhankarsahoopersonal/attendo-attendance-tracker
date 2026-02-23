@@ -201,7 +201,8 @@ const StorageManager = {
         timetable[day].push({
             id: this.generateId(),
             subjectId: classData.subjectId,
-            time: classData.time
+            time: classData.time,
+            endTime: classData.endTime || null
         });
         // Sort by time
         timetable[day].sort((a, b) => a.time.localeCompare(b.time));
@@ -278,7 +279,7 @@ const StorageManager = {
                 ...slot,
                 subject: subject
             };
-        });
+        }).sort((a, b) => a.time.localeCompare(b.time));
     },
 
     /**
