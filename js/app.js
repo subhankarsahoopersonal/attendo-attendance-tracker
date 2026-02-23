@@ -333,7 +333,7 @@ const App = {
         // Calendar heatmap
         const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
 
         let calendarCells = '';
 
@@ -518,16 +518,18 @@ const App = {
     },
 
     openPastAttendanceModal() {
-        // Default to yesterday
+        // Default to yesterday (using local date to avoid UTC timezone issues)
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        const defaultDate = yesterday.toISOString().split('T')[0];
+        const defaultDate = getLocalDateString(yesterday);
+
+        const todayStr = getLocalDateString();
 
         const content = `
             <div class="form-group">
                 <label class="form-label">Select Date</label>
                 <input type="date" id="past-date-picker" class="form-input" 
-                       value="${defaultDate}" max="${new Date().toISOString().split('T')[0]}"
+                       value="${defaultDate}" max="${todayStr}"
                        onchange="App.renderPastClasses(this.value)">
             </div>
             <div id="past-classes-list" class="past-classes-list" style="margin-top: var(--space-md); min-height: 100px;">
@@ -627,7 +629,7 @@ const App = {
         this.renderPastClasses(date);
 
         // If we modified today's data (edge case where user selects today in date picker), update dashboard
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         if (date === today) {
             DashboardUI.init();
         }
@@ -645,7 +647,7 @@ const App = {
             return;
         }
 
-        const defaultDate = preSelectedDate || new Date().toISOString().split('T')[0];
+        const defaultDate = preSelectedDate || getLocalDateString();
         const options = subjects.map(s =>
             `<option value="${s.id}">${s.name}</option>`
         ).join('');
@@ -691,7 +693,7 @@ const App = {
         document.querySelector('.modal-overlay').classList.remove('active');
 
         // Refresh relevant UI
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         if (date === today) {
             DashboardUI.init();
         }
@@ -889,7 +891,7 @@ const App = {
 
         const now = new Date();
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        const todayKey = now.toISOString().split('T')[0];
+        const todayKey = getLocalDateString(now);
 
         // --- Class reminders (30 min before) ---
         const classes = StorageManager.getTodayClasses();
@@ -933,7 +935,7 @@ const App = {
 
         const subjects = StorageManager.getSubjects();
         const target = settings.targetAttendance || 75;
-        const todayKey = new Date().toISOString().split('T')[0];
+        const todayKey = getLocalDateString();
 
         subjects.forEach(subject => {
             if (subject.totalHeld === 0) return;

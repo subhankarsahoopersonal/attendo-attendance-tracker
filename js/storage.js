@@ -1,4 +1,14 @@
 /**
+ * Utility: Get local date as YYYY-MM-DD string (avoids UTC timezone bug with toISOString)
+ * @param {Date} [d] - Optional date, defaults to now
+ * @returns {string}
+ */
+function getLocalDateString(d) {
+    const date = d || new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/**
  * Storage Manager - LocalStorage Data Layer
  * Handles all data persistence for AttenDO
  */
@@ -218,7 +228,7 @@ const StorageManager = {
     getTodayClasses() {
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const today = days[new Date().getDay()];
-        const todayDate = new Date().toISOString().split('T')[0];
+        const todayDate = getLocalDateString();
         const timetable = this.getTimetable();
         const todaySlots = timetable[today] || [];
         const subjects = this.getSubjects();
@@ -452,7 +462,7 @@ const StorageManager = {
      * @param {string} date - Optional, defaults to today
      */
     markAttendance(slotId, subjectId, status, date = null) {
-        const today = date || new Date().toISOString().split('T')[0];
+        const today = date || getLocalDateString();
         const history = this.getHistory();
 
         // Check if already marked today for this slot
@@ -539,7 +549,7 @@ const StorageManager = {
      * @returns {Array}
      */
     getTodayHistory() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         return this.getHistory().filter(h => h.date === today);
     },
 
