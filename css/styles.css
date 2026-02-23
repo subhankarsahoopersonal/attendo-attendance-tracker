@@ -1287,6 +1287,84 @@ textarea {
     gap: var(--space-md);
 }
 
+/* ========================================
+   Custom Confirm/Alert Dialog (WebView safe)
+   ======================================== */
+
+.custom-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-normal);
+}
+
+.custom-dialog-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.custom-dialog {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+    width: 85%;
+    max-width: 360px;
+    transform: scale(0.9) translateY(20px);
+    transition: transform var(--transition-normal);
+    box-shadow: var(--shadow-lg);
+}
+
+.custom-dialog-overlay.active .custom-dialog {
+    transform: scale(1) translateY(0);
+}
+
+.custom-dialog-body {
+    margin-bottom: var(--space-xl);
+}
+
+.custom-dialog-message {
+    font-size: var(--font-size-md);
+    color: var(--text-primary);
+    line-height: 1.5;
+    text-align: center;
+}
+
+.custom-dialog-footer {
+    display: flex;
+    gap: var(--space-md);
+}
+
+.custom-dialog-footer .btn {
+    flex: 1;
+    justify-content: center;
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    border-radius: var(--radius-lg);
+}
+
+.custom-dialog-footer .btn.btn-ghost {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.custom-dialog-footer .btn.btn-ghost:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
 /* Form Elements */
 .form-group {
     margin-bottom: var(--space-lg);

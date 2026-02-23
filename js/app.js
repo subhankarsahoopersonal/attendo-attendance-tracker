@@ -6,6 +6,52 @@
 const App = {
     _initialized: false,
 
+    // ========================================
+    // Custom Dialog (WebView-safe confirm/alert)
+    // ========================================
+
+    showCustomConfirm(message) {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('custom-dialog-overlay');
+            const msgEl = document.getElementById('custom-dialog-message');
+            const okBtn = document.getElementById('custom-dialog-ok');
+            const cancelBtn = document.getElementById('custom-dialog-cancel');
+
+            msgEl.textContent = message;
+            cancelBtn.style.display = '';
+            overlay.classList.add('active');
+
+            const cleanup = () => {
+                overlay.classList.remove('active');
+                okBtn.replaceWith(okBtn.cloneNode(true));
+                cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+            };
+
+            document.getElementById('custom-dialog-ok').addEventListener('click', () => { cleanup(); resolve(true); });
+            document.getElementById('custom-dialog-cancel').addEventListener('click', () => { cleanup(); resolve(false); });
+        });
+    },
+
+    showCustomAlert(message) {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('custom-dialog-overlay');
+            const msgEl = document.getElementById('custom-dialog-message');
+            const okBtn = document.getElementById('custom-dialog-ok');
+            const cancelBtn = document.getElementById('custom-dialog-cancel');
+
+            msgEl.textContent = message;
+            cancelBtn.style.display = 'none';
+            overlay.classList.add('active');
+
+            const cleanup = () => {
+                overlay.classList.remove('active');
+                okBtn.replaceWith(okBtn.cloneNode(true));
+            };
+
+            document.getElementById('custom-dialog-ok').addEventListener('click', () => { cleanup(); resolve(); });
+        });
+    },
+
     init() {
         if (this._initialized) {
             // Already initialized — just refresh data
@@ -440,7 +486,7 @@ const App = {
     openAddSlotModal(day, preSelectedSubjectId = null) {
         const subjects = StorageManager.getSubjects();
         if (subjects.length === 0) {
-            alert("Please create a subject first!");
+            this.showCustomAlert("Please create a subject first!");
             this.openAddSubjectModal();
             return;
         }
@@ -594,7 +640,7 @@ const App = {
     openExtraClassModal(preSelectedDate = null) {
         const subjects = StorageManager.getSubjects();
         if (subjects.length === 0) {
-            alert("Please create a subject first!");
+            this.showCustomAlert("Please create a subject first!");
             this.openAddSubjectModal();
             return;
         }
@@ -637,7 +683,7 @@ const App = {
         const endTime = document.getElementById('extra-class-end-time').value;
 
         if (!date || !subjectId || !time) {
-            alert('Please fill in date, subject, and start time.');
+            this.showCustomAlert('Please fill in date, subject, and start time.');
             return;
         }
 
@@ -690,18 +736,22 @@ const App = {
     },
 
     deleteSlot(day, slotId) {
-        if (confirm('Remove this class?')) {
-            TimetableManager.removeClass(day, slotId);
-            this.renderTimetablePage();
-        }
+        this.showCustomConfirm('Remove this class?').then(confirmed => {
+            if (confirmed) {
+                TimetableManager.removeClass(day, slotId);
+                this.renderTimetablePage();
+            }
+        });
     },
 
     deleteSubject(id) {
-        if (confirm('Delete subject? This will remove all history and stats.')) {
-            StorageManager.deleteSubject(id);
-            this.renderTimetablePage();
-            DashboardUI.init();
-        }
+        this.showCustomConfirm('Delete subject? This will remove all history and stats.').then(confirmed => {
+            if (confirmed) {
+                StorageManager.deleteSubject(id);
+                this.renderTimetablePage();
+                DashboardUI.init();
+            }
+        });
     },
 
     // ========================================
@@ -1278,10 +1328,9 @@ const App = {
         reader.onload = (e) => {
             const success = StorageManager.importData(e.target.result);
             if (success) {
-                alert('Data imported successfully!');
-                location.reload();
+                this.showCustomAlert('Data imported successfully!').then(() => location.reload());
             } else {
-                alert('Failed to import data. Invalid file.');
+                this.showCustomAlert('Failed to import data. Invalid file.');
             }
         };
         reader.readAsText(file);
