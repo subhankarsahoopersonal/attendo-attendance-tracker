@@ -26,6 +26,7 @@ const AuthManager = {
         }
     },
 
+
     /**
      * Called when user logs in
      */
@@ -185,4 +186,49 @@ const AuthManager = {
         };
         return map[code] || 'Something went wrong. Please try again.';
     }
+};
+
+// ======================================================================
+// NATIVE ANDROID BRIDGE FUNCTIONS
+// ======================================================================
+
+// 1. Triggered when the user clicks the "Continue with Google" button
+window.handleGoogleLoginClick = function () {
+
+    // Check if the app is running inside your Android WebView
+    if (window.AndroidBridge && window.AndroidBridge.startNativeGoogleLogin) {
+        console.log("Android environment detected. Launching native sign-in...");
+        window.AndroidBridge.startNativeGoogleLogin();
+    }
+    // Otherwise, fallback to standard web browser login
+    else {
+        console.log("Web environment detected. Launching standard popup...");
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        firebase.auth().signInWithPopup(provider)
+            .catch((error) => {
+                console.error('Web login error:', error);
+                // If you have an error display function in AuthManager, call it here
+            });
+    }
+};
+
+// 2. Triggered automatically by Android when native login succeeds
+window.receiveNativeGoogleToken = function (idToken) {
+    console.log("Received token from Android! Authenticating with Firebase...");
+
+    // Convert the Android token into a Firebase Web credential
+    const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
+
+    // Tell Firebase to sign the user in with this credential
+    firebase.auth().signInWithCredential(credential)
+        .then((result) => {
+            console.log("Success! Firebase session created via Native Bridge.");
+            // Note: You don't need to call AuthManager.onLogin() manually here!
+            // Your existing auth.onAuthStateChanged listener inside AuthManager.init() 
+            // will detect this login automatically and load the dashboard.
+        })
+        .catch((error) => {
+            console.error("Native Firebase Auth Error:", error);
+        });
 };
