@@ -29,6 +29,23 @@
 
             <div id="auth-error" class="auth-error hidden"></div>
 
+            <!-- Account Linking Prompt (shown when Google login conflicts with email/password) -->
+            <div id="account-linking-prompt" class="account-linking-prompt hidden">
+                <div class="linking-icon">🔗</div>
+                <p class="linking-message">
+                    An account with <strong id="linking-email"></strong> already exists with email/password.
+                    Enter your password to link Google sign-in.
+                </p>
+                <div class="form-group">
+                    <input type="password" id="linking-password" class="form-input" placeholder="Enter your password">
+                </div>
+                <div class="linking-actions">
+                    <button class="auth-btn email-btn" onclick="linkAccount()">🔗 Link Account</button>
+                    <button class="auth-btn google-btn" onclick="cancelLinking()"
+                        style="background: var(--bg-card);">Cancel</button>
+                </div>
+            </div>
+
             <!-- Google Sign In -->
             <button class="auth-btn google-btn" onclick="handleGoogleLoginClick()">
                 <svg width="20" height="20" viewBox="0 0 48 48">

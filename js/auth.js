@@ -222,6 +222,10 @@ const AuthManager = {
 // NATIVE ANDROID BRIDGE FUNCTIONS
 // ======================================================================
 
+// Temporary storage for pending Google credential during account linking
+let _pendingGoogleCredential = null;
+let _pendingEmail = null;
+
 // 1. Triggered when the user clicks the "Continue with Google" button
 window.handleGoogleLoginClick = function () {
 
@@ -237,8 +241,15 @@ window.handleGoogleLoginClick = function () {
 
         firebase.auth().signInWithPopup(provider)
             .catch((error) => {
-                console.error('Web login error:', error);
-                // If you have an error display function in AuthManager, call it here
+                if (error.code === 'auth/account-exists-with-different-credential') {
+                    // Same email exists with email/password — show linking prompt
+                    _pendingGoogleCredential = error.credential;
+                    _pendingEmail = error.email;
+                    showLinkingPrompt(error.email);
+                } else {
+                    console.error('Web login error:', error);
+                    AuthManager.showError(error.message);
+                }
             });
     }
 };
@@ -254,11 +265,91 @@ window.receiveNativeGoogleToken = function (idToken) {
     firebase.auth().signInWithCredential(credential)
         .then((result) => {
             console.log("Success! Firebase session created via Native Bridge.");
-            // Note: You don't need to call AuthManager.onLogin() manually here!
-            // Your existing auth.onAuthStateChanged listener inside AuthManager.init() 
-            // will detect this login automatically and load the dashboard.
         })
         .catch((error) => {
-            console.error("Native Firebase Auth Error:", error);
+            if (error.code === 'auth/account-exists-with-different-credential') {
+                _pendingGoogleCredential = credential;
+                _pendingEmail = error.email;
+                showLinkingPrompt(error.email);
+            } else {
+                console.error("Native Firebase Auth Error:", error);
+                AuthManager.showError(error.message);
+            }
         });
 };
+
+// ======================================================================
+// ACCOUNT LINKING FUNCTIONS
+// ======================================================================
+
+/**
+ * Show the account linking prompt when Google login conflicts with email/password
+ */
+function showLinkingPrompt(email) {
+    const prompt = document.getElementById('account-linking-prompt');
+    const emailEl = document.getElementById('linking-email');
+    const passwordEl = document.getElementById('linking-password');
+
+    if (emailEl) emailEl.textContent = email;
+    if (passwordEl) passwordEl.value = '';
+    if (prompt) prompt.classList.remove('hidden');
+
+    // Hide the normal auth error if visible
+    const errEl = document.getElementById('auth-error');
+    if (errEl) errEl.classList.add('hidden');
+}
+
+/**
+ * Link the pending Google credential with the existing email/password account
+ */
+async function linkAccount() {
+    const password = document.getElementById('linking-password').value;
+    if (!password) {
+        AuthManager.showError('Please enter your password.');
+        return;
+    }
+
+    if (!_pendingGoogleCredential || !_pendingEmail) {
+        AuthManager.showError('Linking session expired. Please try again.');
+        cancelLinking();
+        return;
+    }
+
+    try {
+        AuthManager.setLoading(true);
+
+        // Step 1: Sign in with the existing email/password
+        const result = await firebase.auth().signInWithEmailAndPassword(_pendingEmail, password);
+
+        // Step 2: Link the Google credential to this account
+        await result.user.linkWithCredential(_pendingGoogleCredential);
+
+        console.log('Account linked successfully! Google + Email/Password now share the same account.');
+
+        // Clean up
+        _pendingGoogleCredential = null;
+        _pendingEmail = null;
+        cancelLinking();
+
+        // onAuthStateChanged will handle the rest (login flow)
+    } catch (error) {
+        console.error('Account linking error:', error);
+        if (error.code === 'auth/wrong-password') {
+            AuthManager.showError('Incorrect password. Please try again.');
+        } else {
+            AuthManager.showError(AuthManager.friendlyError(error.code));
+        }
+    } finally {
+        AuthManager.setLoading(false);
+    }
+}
+
+/**
+ * Cancel the account linking prompt
+ */
+function cancelLinking() {
+    const prompt = document.getElementById('account-linking-prompt');
+    if (prompt) prompt.classList.add('hidden');
+    _pendingGoogleCredential = null;
+    _pendingEmail = null;
+}
