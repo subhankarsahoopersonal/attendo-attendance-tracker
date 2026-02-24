@@ -60,6 +60,32 @@ const AuthManager = {
      */
     onLogout() {
         this.currentUser = null;
+
+        // Reset app state so next login re-initializes fully
+        App._initialized = false;
+
+        // Clear dashboard DOM content (prevents stale data from previous user)
+        const todayList = document.getElementById('today-classes-list');
+        if (todayList) todayList.innerHTML = '';
+        const statsGrid = document.getElementById('subject-stats-grid');
+        if (statsGrid) statsGrid.innerHTML = '';
+
+        // Reset quick stats to zero
+        ['qs-safe-count', 'qs-total-subjects', 'qs-total-classes'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '0';
+        });
+        const overallEl = document.getElementById('qs-overall-percentage');
+        if (overallEl) overallEl.textContent = '0%';
+
+        // Reset user profile display
+        const nameEl = document.getElementById('user-display-name');
+        const emailEl = document.getElementById('user-display-email');
+        const avatarEl = document.getElementById('user-avatar');
+        if (nameEl) nameEl.textContent = 'User';
+        if (emailEl) emailEl.textContent = '';
+        if (avatarEl) avatarEl.textContent = 'U';
+
         // Hide loading splash, show login screen
         const splash = document.getElementById('loading-splash');
         if (splash) splash.classList.add('hidden');
