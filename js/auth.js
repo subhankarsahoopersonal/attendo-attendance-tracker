@@ -64,6 +64,10 @@ const AuthManager = {
         // Reset app state so next login re-initializes fully
         App._initialized = false;
 
+        // Clear previous user's data from localStorage
+        // (their data is safe in Firestore; this prevents it leaking to next user)
+        StorageManager.clearAllData();
+
         // Clear dashboard DOM content (prevents stale data from previous user)
         const todayList = document.getElementById('today-classes-list');
         if (todayList) todayList.innerHTML = '';
