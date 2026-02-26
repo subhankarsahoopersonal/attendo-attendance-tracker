@@ -628,10 +628,13 @@ const App = {
         // Re-render to show active state
         this.renderPastClasses(date);
 
-        // If we modified today's data (edge case where user selects today in date picker), update dashboard
+        // Always refresh dashboard stats since subject counts change regardless of date
+        DashboardUI.renderSubjectStats();
+
+        // If we modified today's data, also refresh today's class buttons
         const today = getLocalDateString();
         if (date === today) {
-            DashboardUI.init();
+            DashboardUI.renderToday();
         }
     },
 
