@@ -943,6 +943,132 @@ textarea {
     opacity: 0.7;
 }
 
+/* ---- Swipe Gesture Styles ---- */
+.class-item.swipeable {
+    overflow: hidden;
+    position: relative;
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 0;
+}
+
+/* Indicator layers revealed behind swipe-content */
+.swipe-indicator {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-xl);
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.swipe-indicator-right {
+    left: 0;
+    justify-content: flex-start;
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.35), rgba(34, 197, 94, 0.08));
+    color: var(--color-safe);
+}
+
+.swipe-indicator-left {
+    right: 0;
+    justify-content: flex-end;
+    background: linear-gradient(270deg, rgba(239, 68, 68, 0.35), rgba(239, 68, 68, 0.08));
+    color: var(--color-danger);
+}
+
+.swipe-indicator.visible {
+    opacity: 1;
+}
+
+.swipe-indicator svg {
+    width: 28px;
+    height: 28px;
+    stroke-width: 2.5;
+}
+
+/* The inner content that translates with the swipe */
+.swipe-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: inherit;
+    padding: var(--space-lg);
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    width: 100%;
+}
+
+.swipe-content.swiping {
+    transition: none;
+}
+
+/* Swipe hint */
+.swipe-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    opacity: 0;
+    animation: swipeHintFade 3s ease 1s forwards;
+}
+
+.swipe-hint .hint-arrow {
+    display: inline-block;
+    animation: swipeHintBounce 1.5s ease-in-out infinite;
+}
+
+.swipe-hint .hint-arrow-left {
+    animation-direction: reverse;
+}
+
+@keyframes swipeHintFade {
+    0% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.7;
+    }
+
+    80% {
+        opacity: 0.7;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+@keyframes swipeHintBounce {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    50% {
+        transform: translateX(4px);
+    }
+}
+
 .class-info {
     display: flex;
     align-items: center;
@@ -2583,10 +2709,13 @@ select.form-input option {
     }
 
     .class-item {
+        padding: var(--space-md);
+    }
+
+    .class-item .swipe-content {
         flex-direction: column;
         gap: var(--space-md);
         align-items: flex-start;
-        padding: var(--space-md);
     }
 
     .class-info {
