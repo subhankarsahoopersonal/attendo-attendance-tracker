@@ -40,18 +40,19 @@ const AuthManager = {
         // Update user display
         this.updateUserUI(user);
 
-        // Check if user has data in Firestore
-        const hasCloudData = await FirestoreSync.hasData(user.uid);
-
-        if (hasCloudData) {
-            // Pull cloud data to localStorage
-            await FirestoreSync.pullAll(user.uid);
-        } else {
-            // First login — migrate existing localStorage data to Firestore
-            await FirestoreSync.pushAll(user.uid);
+        // Sync with Firestore (non-blocking for UI)
+        try {
+            const hasCloudData = await FirestoreSync.hasData(user.uid);
+            if (hasCloudData) {
+                await FirestoreSync.pullAll(user.uid);
+            } else {
+                await FirestoreSync.pushAll(user.uid);
+            }
+        } catch (err) {
+            console.error('Firestore sync error during login:', err);
         }
 
-        // Initialize the app
+        // Initialize the app — always runs even if sync fails
         App.init();
     },
 
@@ -89,6 +90,17 @@ const AuthManager = {
         if (nameEl) nameEl.textContent = 'User';
         if (emailEl) emailEl.textContent = '';
         if (avatarEl) avatarEl.textContent = 'U';
+
+        // Close sidebar and chatbot if open (reset visual state)
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.classList.remove('open');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+        const chatWindow = document.querySelector('.chat-window');
+        if (chatWindow) chatWindow.classList.remove('active');
+        const chatFab = document.querySelector('.chat-fab');
+        if (chatFab) chatFab.classList.remove('active');
+        document.body.style.overflow = '';
 
         // Hide loading splash, show login screen
         const splash = document.getElementById('loading-splash');

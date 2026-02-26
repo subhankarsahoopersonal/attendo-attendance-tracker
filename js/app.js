@@ -5,6 +5,7 @@
 
 const App = {
     _initialized: false,
+    _listenerController: null,
 
     // ========================================
     // Custom Dialog (WebView-safe confirm/alert)
@@ -53,24 +54,27 @@ const App = {
     },
 
     init() {
-        if (this._initialized) {
-            // Already initialized — just refresh data
-            DashboardUI.init();
-            return;
+        // Abort any previous event listeners from a prior session
+        if (this._listenerController) {
+            this._listenerController.abort();
         }
-        this._initialized = true;
+        this._listenerController = new AbortController();
 
         this.setupNavigation();
         this.setupModal();
         this.setupChatbot();
-        this.setupNotifications();
+
+        if (!this._initialized) {
+            this._initialized = true;
+            this.setupNotifications();
+            // Global tick for time updates
+            setInterval(() => this.updateTime(), 60000);
+        }
+
         this.checkRoute();
 
         // Initial Render
         DashboardUI.init();
-
-        // Global tick for time updates
-        setInterval(() => this.updateTime(), 60000);
         this.updateTime();
     },
 
@@ -79,12 +83,13 @@ const App = {
     // ========================================
 
     setupNavigation() {
+        const signal = this._listenerController.signal;
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 const target = e.currentTarget.getAttribute('data-target');
                 this.navigate(target);
-            });
+            }, { signal });
         });
 
         // Mobile hamburger
@@ -101,7 +106,7 @@ const App = {
                 // Close chatbot if open
                 document.querySelector('.chat-window').classList.remove('active');
                 document.querySelector('.chat-fab').classList.remove('active');
-            });
+            }, { signal });
         }
 
         // Close sidebar when tapping the overlay
@@ -110,7 +115,7 @@ const App = {
                 document.querySelector('.sidebar').classList.remove('open');
                 sidebarOverlay.classList.remove('active');
                 document.body.style.overflow = '';
-            });
+            }, { signal });
         }
     },
 
@@ -265,17 +270,18 @@ const App = {
     // ========================================
 
     setupModal() {
+        const signal = this._listenerController.signal;
         const modal = document.querySelector('.modal-overlay');
         const closeBtn = document.querySelector('.modal-close');
 
         if (modal && closeBtn) {
             closeBtn.addEventListener('click', () => {
                 modal.classList.remove('active');
-            });
+            }, { signal });
 
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) modal.classList.remove('active');
-            });
+            }, { signal });
         }
     },
 
@@ -787,29 +793,30 @@ const App = {
     // ========================================
 
     setupChatbot() {
+        const signal = this._listenerController.signal;
         const fab = document.querySelector('.chat-fab');
-        const window = document.querySelector('.chat-window');
+        const chatWin = document.querySelector('.chat-window');
         const close = document.querySelector('.chat-minimize');
         const input = document.getElementById('chat-input');
         const send = document.getElementById('chat-send');
 
         fab.addEventListener('click', () => {
-            window.classList.toggle('active');
+            chatWin.classList.toggle('active');
             fab.classList.toggle('active');
             // Lock/unlock body scroll
-            document.body.style.overflow = window.classList.contains('active') ? 'hidden' : '';
+            document.body.style.overflow = chatWin.classList.contains('active') ? 'hidden' : '';
             // Close sidebar if open
             document.querySelector('.sidebar').classList.remove('open');
             const sidebarOverlay = document.getElementById('sidebar-overlay');
             if (sidebarOverlay) sidebarOverlay.classList.remove('active');
-        });
+        }, { signal });
 
         if (close) {
             close.addEventListener('click', () => {
-                window.classList.remove('active');
+                chatWin.classList.remove('active');
                 fab.classList.remove('active');
                 document.body.style.overflow = '';
-            });
+            }, { signal });
         }
 
         const sendMessage = () => {
@@ -825,10 +832,10 @@ const App = {
             }, 600);
         };
 
-        send.addEventListener('click', sendMessage);
+        send.addEventListener('click', sendMessage, { signal });
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
-        });
+        }, { signal });
     },
 
     addChatMessage(text, sender) {
