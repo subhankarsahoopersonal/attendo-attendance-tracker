@@ -1637,6 +1637,7 @@ select.form-input option {
     border-radius: var(--radius-xl);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     z-index: 899;
     opacity: 0;
     visibility: hidden;
@@ -1681,6 +1682,7 @@ select.form-input option {
 
 .chat-messages {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: var(--space-lg);
     display: flex;
@@ -2739,9 +2741,9 @@ select.form-input option {
         right: var(--space-md);
         width: auto;
         bottom: 72px;
+        top: var(--space-md);
         height: auto;
-        max-height: calc(100vh - 90px);
-        top: auto;
+        max-height: none;
     }
 
     .chat-fab {
@@ -2991,9 +2993,9 @@ select.form-input option {
         left: var(--space-sm);
         right: var(--space-sm);
         bottom: 64px;
+        top: var(--space-sm);
         height: auto;
-        max-height: calc(100vh - 80px);
-        top: auto;
+        max-height: none;
         border-radius: var(--radius-xl);
     }
 
