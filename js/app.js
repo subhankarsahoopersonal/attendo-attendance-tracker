@@ -1083,6 +1083,7 @@ const App = {
                     slotsHtml = daySlots.map((slot, idx) => `
                       <div class="qs-slot-row">
                         <select onchange="App.quickSetupUpdateSlot('${day}',${idx},'subjectIdx',this.value)">
+                          <option value="-1" ${slot.subjectIdx === -1 ? 'selected' : ''} disabled>Select subject</option>
                           ${state.subjects.map((s, si) =>
                         `<option value="${si}" ${si === slot.subjectIdx ? 'selected' : ''}>${s.name}</option>`
                     ).join('')}
@@ -1253,7 +1254,7 @@ const App = {
     quickSetupAddSlot(day) {
         if (!this._quickSetupState) return;
         this._quickSetupState.slots[day].push({
-            subjectIdx: 0,
+            subjectIdx: -1,
             startTime: '09:30',
             endTime: ''
         });
@@ -1291,6 +1292,7 @@ const App = {
         // 2. Create all timetable slots
         this._quickSetupDays.forEach(day => {
             state.slots[day].forEach(slot => {
+                if (slot.subjectIdx === -1) return; // skip unselected slots
                 const realSubjectId = idMap[slot.subjectIdx];
                 if (realSubjectId && slot.startTime) {
                     TimetableManager.addClass(day, realSubjectId, slot.startTime, slot.endTime || null);
