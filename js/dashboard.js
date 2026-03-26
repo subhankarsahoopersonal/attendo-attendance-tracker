@@ -368,7 +368,7 @@ const DashboardUI = {
 
     // Send overall attendance to Android widget (if running inside WebView)
     if (window.AndroidBridge) {
-      window.AndroidBridge.sendDataToWidget(parseFloat(overallPercentage));
+      window.AndroidBridge.sendDataToWidget(String(overallPercentage));
     }
   },
 
