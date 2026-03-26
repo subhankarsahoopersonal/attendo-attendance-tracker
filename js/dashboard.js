@@ -366,29 +366,20 @@ const DashboardUI = {
     if (elAttended) elAttended.textContent = totalClasses;
     if (elOverall) elOverall.textContent = `${overallPercentage}%`;
 
-    // Send overall attendance to Android widget with a Smart Retry!
-    function syncWidgetData(data, retriesLeft) {
-      try {
-        // Try to send the data
-        if (window.AndroidBridge) {
-          window.AndroidBridge.sendDataToWidget(String(data || 0));
-          return; // If it succeeds, exit the loop!
-        }
-      } catch (error) {
-        // Bridge exists but isn't fully ready yet (ignoring the error)
-      }
+    // Send overall attendance to Android widget
+    try {
+      if (window.AndroidBridge) {
+        // This will pop up on your screen proving the NEW code is running!
+        window.AndroidBridge.showToast("Bridge connected! Sending: " + overallPercentage);
 
-      // If it failed and we have retries left, wait half a second and try again!
-      if (retriesLeft > 0) {
-        setTimeout(() => syncWidgetData(data, retriesLeft - 1), 500);
+        // Send the data
+        window.AndroidBridge.sendDataToWidget(String(overallPercentage || 0));
       }
+    } catch (error) {
+      console.error("Widget sync skipped:", error);
     }
 
-    // Start knocking! Give it 5 tries (2.5 seconds total)
-    syncWidgetData(overallPercentage, 5);
-  },
-
-  setupEventListeners() {
-    // Dashboard-specific listeners are set up in renderToday via setupSwipeHandlers
-  }
-};
+    setupEventListeners() {
+      // Dashboard-specific listeners are set up in renderToday via setupSwipeHandlers
+    }
+  };
