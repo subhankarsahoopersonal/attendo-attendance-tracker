@@ -366,18 +366,26 @@ const DashboardUI = {
     if (elAttended) elAttended.textContent = totalClasses;
     if (elOverall) elOverall.textContent = `${overallPercentage}%`;
 
-    // Send overall attendance to Android widget
-    try {
-      if (window.AndroidBridge) {
-        // Force the variable to be a clean string
-        const cleanData = String(overallPercentage || 0);
-
-        // Send it across the bridge directly!
-        window.AndroidBridge.sendDataToWidget(cleanData);
+    // Send overall attendance to Android widget with a Smart Retry!
+    function syncWidgetData(data, retriesLeft) {
+      try {
+        // Try to send the data
+        if (window.AndroidBridge) {
+          window.AndroidBridge.sendDataToWidget(String(data || 0));
+          return; // If it succeeds, exit the loop!
+        }
+      } catch (error) {
+        // Bridge exists but isn't fully ready yet (ignoring the error)
       }
-    } catch (error) {
-      console.error("Widget sync skipped:", error);
+
+      // If it failed and we have retries left, wait half a second and try again!
+      if (retriesLeft > 0) {
+        setTimeout(() => syncWidgetData(data, retriesLeft - 1), 500);
+      }
     }
+
+    // Start knocking! Give it 5 tries (2.5 seconds total)
+    syncWidgetData(overallPercentage, 5);
   },
 
   setupEventListeners() {
