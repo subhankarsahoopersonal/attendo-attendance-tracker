@@ -368,12 +368,15 @@ const DashboardUI = {
 
     // Send overall attendance to Android widget
     try {
-      if (window.AndroidBridge && window.AndroidBridge.sendDataToWidget) {
-        // Force it to be a string to match the Kotlin code
-        window.AndroidBridge.sendDataToWidget(String(overallPercentage));
+      if (window.AndroidBridge) {
+        // Test 1: Prove the bridge is connected!
+        window.AndroidBridge.showToast("Hello from Netlify! The bridge works!");
+
+        // Test 2: Try sending a hardcoded safe string
+        window.AndroidBridge.sendDataToWidget("85");
       }
     } catch (error) {
-      console.error("Widget sync failed, but keeping dashboard alive: ", error);
+      console.error("Bridge failed:", error);
     }
   },
 
