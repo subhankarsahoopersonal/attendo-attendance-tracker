@@ -369,8 +369,14 @@ const DashboardUI = {
     // Send overall attendance to Android widget
     try {
       if (window.AndroidBridge) {
-        // We use String() to safely package the number as text so Android accepts it
-        window.AndroidBridge.sendDataToWidget(String(overallPercentage));
+        // Force the variable to be a clean string, avoiding nulls or undefined
+        const cleanData = String(overallPercentage || 0);
+
+        // Let's pop a toast from JS too, just to be double sure!
+        window.AndroidBridge.showToast("JS is sending: " + cleanData);
+
+        // Send it across the bridge
+        window.AndroidBridge.sendDataToWidget(cleanData);
       }
     } catch (error) {
       console.error("Widget sync failed:", error);
