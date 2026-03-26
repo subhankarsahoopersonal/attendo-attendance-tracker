@@ -369,14 +369,11 @@ const DashboardUI = {
     // Send overall attendance to Android widget
     try {
       if (window.AndroidBridge) {
-        // Test 1: Prove the bridge is connected!
-        window.AndroidBridge.showToast("Hello from Netlify! The bridge works!");
-
-        // Test 2: Try sending a hardcoded safe string
-        window.AndroidBridge.sendDataToWidget("85");
+        // We use String() to safely package the number as text so Android accepts it
+        window.AndroidBridge.sendDataToWidget(String(overallPercentage));
       }
     } catch (error) {
-      console.error("Bridge failed:", error);
+      console.error("Widget sync failed:", error);
     }
   },
 
