@@ -366,9 +366,14 @@ const DashboardUI = {
     if (elAttended) elAttended.textContent = totalClasses;
     if (elOverall) elOverall.textContent = `${overallPercentage}%`;
 
-    // Send overall attendance to Android widget (if running inside WebView)
-    if (window.AndroidBridge) {
-      window.AndroidBridge.sendDataToWidget(String(overallPercentage));
+    // Send overall attendance to Android widget
+    try {
+      if (window.AndroidBridge && window.AndroidBridge.sendDataToWidget) {
+        // Force it to be a string to match the Kotlin code
+        window.AndroidBridge.sendDataToWidget(String(overallPercentage));
+      }
+    } catch (error) {
+      console.error("Widget sync failed, but keeping dashboard alive: ", error);
     }
   },
 
