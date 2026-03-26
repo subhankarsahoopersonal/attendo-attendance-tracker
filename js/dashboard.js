@@ -368,18 +368,13 @@ const DashboardUI = {
 
     // Send overall attendance to Android widget
     try {
-      if (window.AndroidBridge) {
+      // We explicitly check if the function exists before calling it!
+      if (window.AndroidBridge && typeof window.AndroidBridge.sendDataToWidget === 'function') {
         const cleanData = String(overallPercentage || 0);
-        window.AndroidBridge.showToast("JS is sending: " + cleanData);
-
-        // Try to send it
         window.AndroidBridge.sendDataToWidget(cleanData);
       }
     } catch (error) {
-      // THE SNITCH: If the bridge fails, this will print the exact reason on your screen
-      if (window.AndroidBridge && window.AndroidBridge.showToast) {
-        window.AndroidBridge.showToast("CRASH LOG: " + error.message);
-      }
+      console.error("Widget sync skipped:", error);
     }
   },
 
