@@ -368,9 +368,11 @@ const DashboardUI = {
 
     // Send overall attendance to Android widget
     try {
-      // We explicitly check if the function exists before calling it!
-      if (window.AndroidBridge && typeof window.AndroidBridge.sendDataToWidget === 'function') {
+      if (window.AndroidBridge) {
+        // Force the variable to be a clean string
         const cleanData = String(overallPercentage || 0);
+
+        // Send it across the bridge directly!
         window.AndroidBridge.sendDataToWidget(cleanData);
       }
     } catch (error) {
