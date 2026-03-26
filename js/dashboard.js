@@ -365,6 +365,11 @@ const DashboardUI = {
     if (elTotal) elTotal.textContent = totalSubjects;
     if (elAttended) elAttended.textContent = totalClasses;
     if (elOverall) elOverall.textContent = `${overallPercentage}%`;
+
+    // Send overall attendance to Android widget (if running inside WebView)
+    if (window.AndroidBridge) {
+      window.AndroidBridge.sendDataToWidget(parseFloat(overallPercentage));
+    }
   },
 
   setupEventListeners() {
