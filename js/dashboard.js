@@ -366,20 +366,20 @@ const DashboardUI = {
     if (elAttended) elAttended.textContent = totalClasses;
     if (elOverall) elOverall.textContent = `${overallPercentage}%`;
 
-    // Send overall attendance to Android widget
+    // ==========================================
+    // ANDROID WIDGET BRIDGE
+    // ==========================================
     try {
-      if (window.AndroidBridge) {
-        // This will pop up on your screen proving the NEW code is running!
+      if (window.AndroidBridge && typeof window.AndroidBridge.sendDataToWidget === 'function') {
         window.AndroidBridge.showToast("Bridge connected! Sending: " + overallPercentage);
-
-        // Send the data
         window.AndroidBridge.sendDataToWidget(String(overallPercentage || 0));
       }
     } catch (error) {
       console.error("Widget sync skipped:", error);
     }
+  },
 
-    setupEventListeners() {
-      // Dashboard-specific listeners are set up in renderToday via setupSwipeHandlers
-    }
-  };
+  setupEventListeners() {
+    // Dashboard-specific listeners are set up in renderToday via setupSwipeHandlers
+  }
+};
