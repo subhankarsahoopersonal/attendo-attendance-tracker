@@ -372,14 +372,21 @@ const DashboardUI = {
     try {
       if (window.AttendoApp) {
         const cleanPercentage = String(overallPercentage || 0);
+        let nextClassString = "No more classes today! 🥳";
 
-        // Let's use a test string to prove the UI updates correctly!
-        // (Once this works, you can swap this out for your real schedule logic)
-        const nextClassString = "Java Programming (10:30 AM)";
+        // Grab today's schedule from StorageManager
+        const todayClasses = StorageManager.getTodayClasses();
 
-        // Pack them together separated by a pipe!
+        if (todayClasses && todayClasses.length > 0) {
+          const nextClass = todayClasses[0];
+          // subject is an object with .name, time is a string
+          if (nextClass.subject) {
+            nextClassString = `${nextClass.subject.name} (${nextClass.time})`;
+          }
+        }
+
+        // Pack and send!
         const payload = cleanPercentage + "|" + nextClassString;
-
         window.AttendoApp.syncAttendanceData(payload);
       }
     } catch (error) {
