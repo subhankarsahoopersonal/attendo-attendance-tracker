@@ -370,9 +370,11 @@ const DashboardUI = {
     // ANDROID WIDGET BRIDGE
     // ==========================================
     try {
-      if (window.AndroidBridge && typeof window.AndroidBridge.sendDataToWidget === 'function') {
-        window.AndroidBridge.showToast("Bridge connected! Sending: " + overallPercentage);
-        window.AndroidBridge.sendDataToWidget(String(overallPercentage || 0));
+      // Look for our new bridge name!
+      if (window.AttendoApp) {
+        const cleanData = String(overallPercentage || 0);
+        // Use the new function name!
+        window.AttendoApp.syncAttendanceData(cleanData);
       }
     } catch (error) {
       console.error("Widget sync skipped:", error);
