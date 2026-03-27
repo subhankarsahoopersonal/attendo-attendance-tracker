@@ -370,11 +370,17 @@ const DashboardUI = {
     // ANDROID WIDGET BRIDGE
     // ==========================================
     try {
-      // Look for our new bridge name!
       if (window.AttendoApp) {
-        const cleanData = String(overallPercentage || 0);
-        // Use the new function name!
-        window.AttendoApp.syncAttendanceData(cleanData);
+        const cleanPercentage = String(overallPercentage || 0);
+
+        // Let's use a test string to prove the UI updates correctly!
+        // (Once this works, you can swap this out for your real schedule logic)
+        const nextClassString = "Java Programming (10:30 AM)";
+
+        // Pack them together separated by a pipe!
+        const payload = cleanPercentage + "|" + nextClassString;
+
+        window.AttendoApp.syncAttendanceData(payload);
       }
     } catch (error) {
       console.error("Widget sync skipped:", error);
