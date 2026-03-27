@@ -374,14 +374,41 @@ const DashboardUI = {
         const cleanPercentage = String(overallPercentage || 0);
         let nextClassString = "No more classes today! 🥳";
 
-        // Grab today's schedule from StorageManager
+        // 1. Get all classes for today
         const todayClasses = StorageManager.getTodayClasses();
 
         if (todayClasses && todayClasses.length > 0) {
-          const nextClass = todayClasses[0];
-          // subject is an object with .name, time is a string
-          if (nextClass.subject) {
-            nextClassString = `${nextClass.subject.name} (${nextClass.time})`;
+          // Get current time in minutes from midnight
+          const now = new Date();
+          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+          let upcomingClass = null;
+
+          // Loop through the schedule to find the next valid class
+          for (const cls of todayClasses) {
+            const timeMatch = (cls.time || "").match(/(\d+):(\d+)/);
+
+            if (timeMatch) {
+              let classHours = parseInt(timeMatch[1], 10);
+              const classMins = parseInt(timeMatch[2], 10);
+
+              // Convert to 24-hour time if string uses AM/PM
+              const timeStr = cls.time.toLowerCase();
+              if (timeStr.includes("pm") && classHours < 12) classHours += 12;
+              if (timeStr.includes("am") && classHours === 12) classHours = 0;
+
+              const classMinutesFromMidnight = (classHours * 60) + classMins;
+
+              if (classMinutesFromMidnight + 0 > currentMinutes) {
+                upcomingClass = cls;
+                break;
+              }
+            }
+          }
+
+          // Format it for the widget if we found one
+          if (upcomingClass && upcomingClass.subject) {
+            nextClassString = `${upcomingClass.subject.name} (${upcomingClass.time})`;
           }
         }
 
