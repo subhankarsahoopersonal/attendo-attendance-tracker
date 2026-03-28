@@ -407,21 +407,29 @@ const DashboardUI = {
           }
 
           // Format it for the widget if we found one
+          let upcomingNote = ""; // Default to empty if there's no room number
+
+          // Format it for the widget if we found one
           if (upcomingClass && upcomingClass.subject) {
             nextClassString = `${upcomingClass.subject.name} (${upcomingClass.time})`;
+
+            // Fetch the classroom number (note) for this specific class
+            const noteText = StorageManager.getNote(upcomingClass.id);
+            if (noteText) {
+              upcomingNote = noteText;
+            }
           }
+
+          // Pack and send! (Now with 3 parts separated by pipes)
+          const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote;
+          window.AttendoApp.syncAttendanceData(payload);
         }
-
-        // Pack and send!
-        const payload = cleanPercentage + "|" + nextClassString;
-        window.AttendoApp.syncAttendanceData(payload);
+      } catch (error) {
+        console.error("Widget sync skipped:", error);
       }
-    } catch (error) {
-      console.error("Widget sync skipped:", error);
-    }
-  },
+    },
 
-  setupEventListeners() {
-    // Dashboard-specific listeners are set up in renderToday via setupSwipeHandlers
-  }
-};
+    setupEventListeners() {
+      // Dashboard-specific listeners are set up in renderToday via setupSwipeHandlers
+    }
+  };
