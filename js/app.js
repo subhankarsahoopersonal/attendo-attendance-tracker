@@ -1350,5 +1350,18 @@ const App = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. VIP PASS CHECK: Boot the UI instantly if they logged in yesterday
+    if (localStorage.getItem('attendo_vip_pass') === 'true') {
+        const splash = document.getElementById('loading-splash');
+        if (splash) splash.classList.add('hidden');
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+
+        if (typeof App !== 'undefined') {
+            App.init();
+        }
+    }
+
+    // 2. ALWAYS wake up Firebase in the background
     AuthManager.init();
 });

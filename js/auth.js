@@ -40,6 +40,8 @@ const AuthManager = {
         // Update user display
         this.updateUserUI(user);
 
+        localStorage.setItem('attendo_vip_pass', 'true');
+
         // 🚀 THE FIX: Boot the app IMMEDIATELY using the local StorageManager cache!
         App.init();
 
@@ -69,6 +71,8 @@ const AuthManager = {
 
         // Reset app state so next login re-initializes fully
         App._initialized = false;
+
+        localStorage.removeItem('attendo_vip_pass');
 
         // Clear previous user's data from localStorage
         // (their data is safe in Firestore; this prevents it leaking to next user)
