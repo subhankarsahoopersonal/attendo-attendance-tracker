@@ -407,22 +407,33 @@ const DashboardUI = {
           }
 
           // Format it for the widget if we found one
-          let upcomingNote = ""; // Default to empty if there's no room number
+          let upcomingNote = ""; // Default to empty
 
           // Format it for the widget if we found one
           if (upcomingClass && upcomingClass.subject) {
             nextClassString = `${upcomingClass.subject.name} (${upcomingClass.time})`;
 
-            // Fetch the classroom number (note) for this specific class
-            const noteText = StorageManager.getNote(upcomingClass.id);
-            if (noteText) {
-              upcomingNote = noteText;
+            // BULLETPROOF NOTE FETCHING
+            try {
+              // Only try to fetch if StorageManager exists and we have an ID
+              if (typeof StorageManager !== 'undefined' && upcomingClass.id) {
+                const noteText = StorageManager.getNote(upcomingClass.id);
+                if (noteText) {
+                  upcomingNote = noteText;
+                }
+              }
+            } catch (error) {
+              console.error("Safely caught note error:", error);
             }
           }
 
-          // Pack and send! (Now with 3 parts separated by pipes)
+          // Pack and send!
           const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote;
-          window.AttendoApp.syncAttendanceData(payload);
+
+          // Only send if the bridge is actually connected
+          if (window.AttendoApp && window.AttendoApp.syncAttendanceData) {
+            window.AttendoApp.syncAttendanceData(payload);
+          }
         }
       } catch (error) {
         console.error("Widget sync skipped:", error);
