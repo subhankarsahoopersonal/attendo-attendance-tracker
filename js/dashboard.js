@@ -407,12 +407,12 @@ const DashboardUI = {
           }
 
           // Format it for the widget if we found one
-          let upcomingNote = ""; 
+          let upcomingNote = "";
 
           // Format it for the widget if we found one
           if (upcomingClass && upcomingClass.subject) {
             nextClassString = `${upcomingClass.subject.name} (${upcomingClass.time})`;
-            
+
             // SAFELY check if the note is already inside the class object
             // We will check the most common variable names developers use
             if (upcomingClass.note) {
@@ -426,18 +426,20 @@ const DashboardUI = {
 
           // Pack and send! (3 parts separated by pipes)
           const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote;
-          
+
           // Send it safely
           if (window.AttendoApp && window.AttendoApp.syncAttendanceData) {
             window.AttendoApp.syncAttendanceData(payload);
           }
-        }
-      } catch (error) {
-        console.error("Widget sync skipped:", error);
-      }
-    },
 
-    setupEventListeners() {
-      // Dashboard-specific listeners are set up in renderToday via setupSwipeHandlers
+        }
+      }
+    } catch (error) {
+      console.error("widget sync skipped:", error);
     }
-  };
+  },
+
+  setupEventListeners() {
+    // Dashboard-specific listeners are set up in renderToday via setupSwipeHandlers
+  }
+};
