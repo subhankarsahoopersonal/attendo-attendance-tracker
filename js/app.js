@@ -73,8 +73,6 @@ const App = {
 
         this.checkRoute();
 
-        // Initial Render
-        DashboardUI.init();
         this.updateTime();
     },
 
