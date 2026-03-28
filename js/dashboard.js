@@ -413,21 +413,27 @@ const DashboardUI = {
           if (upcomingClass && upcomingClass.subject) {
             nextClassString = `${upcomingClass.subject.name} (${upcomingClass.time})`;
 
-            // SAFELY check if the note is already inside the class object
-            // We will check the most common variable names developers use
-            if (upcomingClass.note) {
-              upcomingNote = upcomingClass.note;
-            } else if (upcomingClass.room) {
-              upcomingNote = upcomingClass.room;
-            } else if (upcomingClass.noteText) {
-              upcomingNote = upcomingClass.noteText;
+            // Fetch the noteText exactly how renderToday does it!
+            try {
+              // 1. Check if it's directly attached to the class
+              if (upcomingClass.noteText) {
+                upcomingNote = upcomingClass.noteText;
+              }
+              // 2. Fetch it from the StorageManager (The way your app actually does it)
+              else if (typeof StorageManager !== 'undefined' && upcomingClass.id) {
+                const fetchedNote = StorageManager.getNote(upcomingClass.id);
+                if (fetchedNote) {
+                  upcomingNote = fetchedNote;
+                }
+              }
+            } catch (error) {
+              console.log("Could not fetch note for widget:", error);
             }
           }
 
           // Pack and send! (3 parts separated by pipes)
           const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote;
 
-          // Send it safely
           if (window.AttendoApp && window.AttendoApp.syncAttendanceData) {
             window.AttendoApp.syncAttendanceData(payload);
           }
