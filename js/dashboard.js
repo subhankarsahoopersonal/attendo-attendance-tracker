@@ -407,30 +407,27 @@ const DashboardUI = {
           }
 
           // Format it for the widget if we found one
-          let upcomingNote = ""; // Default to empty
+          let upcomingNote = ""; 
 
           // Format it for the widget if we found one
           if (upcomingClass && upcomingClass.subject) {
             nextClassString = `${upcomingClass.subject.name} (${upcomingClass.time})`;
-
-            // BULLETPROOF NOTE FETCHING
-            try {
-              // Only try to fetch if StorageManager exists and we have an ID
-              if (typeof StorageManager !== 'undefined' && upcomingClass.id) {
-                const noteText = StorageManager.getNote(upcomingClass.id);
-                if (noteText) {
-                  upcomingNote = noteText;
-                }
-              }
-            } catch (error) {
-              console.error("Safely caught note error:", error);
+            
+            // SAFELY check if the note is already inside the class object
+            // We will check the most common variable names developers use
+            if (upcomingClass.note) {
+              upcomingNote = upcomingClass.note;
+            } else if (upcomingClass.room) {
+              upcomingNote = upcomingClass.room;
+            } else if (upcomingClass.noteText) {
+              upcomingNote = upcomingClass.noteText;
             }
           }
 
-          // Pack and send!
+          // Pack and send! (3 parts separated by pipes)
           const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote;
-
-          // Only send if the bridge is actually connected
+          
+          // Send it safely
           if (window.AttendoApp && window.AttendoApp.syncAttendanceData) {
             window.AttendoApp.syncAttendanceData(payload);
           }
