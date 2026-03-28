@@ -331,14 +331,24 @@ const DashboardUI = {
    * Handle attendance marking
    */
   mark(slotId, subjectId, status) {
+    // 1. Save to your local cache instantly (Instant UI response)
     StorageManager.markAttendance(slotId, subjectId, status);
 
-    // Refresh UI
+    // Refresh UI immediately so the user feels no lag
     this.renderToday();
     this.renderSubjectStats();
-
-    // Check if attendance dropped near threshold
     App.checkAttendanceWarnings();
+
+    // 2. ⚡ FEED THE FIREBASE QUEUE!
+    // We get the current user ID, and tell Firebase to save the new state.
+    const currentUser = firebase.auth().currentUser;
+    if (currentUser) {
+      // If offline, Firebase catches this, queues it, and waits for internet!
+      // We don't use 'await' here because we want it to happen silently in the background.
+      FirestoreSync.pushAll(currentUser.uid).catch(err => {
+        console.log("Offline mode: Firebase has queued your attendance mark.");
+      });
+    }
   },
 
   updateQuickStats() {

@@ -31,7 +31,7 @@ const AuthManager = {
      * Called when user logs in
      */
     async onLogin(user) {
-        // Hide loading splash & login screen, show app
+        // Hide loading splash & Login screen, show app
         const splash = document.getElementById('loading-splash');
         if (splash) splash.classList.add('hidden');
         document.getElementById('login-screen').classList.add('hidden');
@@ -40,20 +40,25 @@ const AuthManager = {
         // Update user display
         this.updateUserUI(user);
 
-        // Sync with Firestore (non-blocking for UI)
+        // 🚀 THE FIX: Boot the app IMMEDIATELY using the local StorageManager cache!
+        App.init();
+
+        // ☁️ SILENT BACKGROUND SYNC: Now it is truly non-blocking!
         try {
             const hasCloudData = await FirestoreSync.hasData(user.uid);
             if (hasCloudData) {
                 await FirestoreSync.pullAll(user.uid);
+
+                // 🔄 QUIET REFRESH: Redraw the screen to show any new cloud data
+                if (typeof DashboardUI !== 'undefined') {
+                    DashboardUI.init();
+                }
             } else {
                 await FirestoreSync.pushAll(user.uid);
             }
         } catch (err) {
             console.error('Firestore sync error during login:', err);
         }
-
-        // Initialize the app — always runs even if sync fails
-        App.init();
     },
 
     /**
