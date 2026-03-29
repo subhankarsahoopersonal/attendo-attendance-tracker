@@ -383,72 +383,61 @@ const DashboardUI = {
       if (window.AttendoApp) {
         const cleanPercentage = String(overallPercentage || 0);
         let nextClassString = "No more classes today! 🥳";
+        let upcomingNote = ""; // Moved up here so it exists globally
 
         // 1. Get all classes for today
         const todayClasses = StorageManager.getTodayClasses();
 
+        // If we have classes, figure out which one is next
         if (todayClasses && todayClasses.length > 0) {
-          // Get current time in minutes from midnight
           const now = new Date();
           const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
           let upcomingClass = null;
 
-          // Loop through the schedule to find the next valid class
           for (const cls of todayClasses) {
             const timeMatch = (cls.time || "").match(/(\d+):(\d+)/);
-
             if (timeMatch) {
               let classHours = parseInt(timeMatch[1], 10);
               const classMins = parseInt(timeMatch[2], 10);
 
-              // Convert to 24-hour time if string uses AM/PM
               const timeStr = cls.time.toLowerCase();
               if (timeStr.includes("pm") && classHours < 12) classHours += 12;
               if (timeStr.includes("am") && classHours === 12) classHours = 0;
 
               const classMinutesFromMidnight = (classHours * 60) + classMins;
 
-              if (classMinutesFromMidnight + 0 > currentMinutes) {
+              if (classMinutesFromMidnight > currentMinutes) {
                 upcomingClass = cls;
                 break;
               }
             }
           }
 
-          // Format it for the widget if we found one
-          let upcomingNote = "";
-
-          // Format it for the widget if we found one
           if (upcomingClass && upcomingClass.subject) {
             nextClassString = `${upcomingClass.subject.name} (${upcomingClass.time})`;
 
-            // Fetch the noteText exactly how renderToday does it!
             try {
-              // 1. Check if it's directly attached to the class
               if (upcomingClass.noteText) {
                 upcomingNote = upcomingClass.noteText;
-              }
-              // 2. Fetch it from the StorageManager (The way your app actually does it)
-              else if (typeof StorageManager !== 'undefined' && upcomingClass.id) {
+              } else if (typeof StorageManager !== 'undefined' && upcomingClass.id) {
                 const fetchedNote = StorageManager.getNote(upcomingClass.id);
-                if (fetchedNote) {
-                  upcomingNote = fetchedNote;
-                }
+                if (fetchedNote) upcomingNote = fetchedNote;
               }
             } catch (error) {
               console.log("Could not fetch note for widget:", error);
             }
           }
-
-          // Pack and send! (3 parts separated by pipes)
-          const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote;
-
-          if (window.AttendoApp && window.AttendoApp.syncAttendanceData) {
-            window.AttendoApp.syncAttendanceData(payload);
-          }
-
         }
+
+        // 🚀 MOVED OUTSIDE THE IF STATEMENT!
+        // Pack and send! (This will now ALWAYS run, updating the widget perfectly)
+        const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote;
+
+        if (window.AttendoApp.syncAttendanceData) {
+          window.AttendoApp.syncAttendanceData(payload);
+        }
+
       }
     } catch (error) {
       console.error("widget sync skipped:", error);
