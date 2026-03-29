@@ -448,3 +448,80 @@ const DashboardUI = {
     // Dashboard-specific listeners are set up in renderToday via setupSwipeHandlers
   }
 };
+
+
+const CampaignManager = {
+  setupWeeklyJokes() {
+    if (!window.AttendoApp || !window.AttendoApp.scheduleWeeklyCampaign) return;
+
+    // --- 1. EVERYDAY MESSAGES (Loop through days 1-7) ---
+    for (let day = 1; day <= 7; day++) {
+      // Subah 09:00 AM
+      window.AttendoApp.scheduleWeeklyCampaign(100 + day, day, 9, 0,
+        "🌅 Nayi subah, nayi ummeed.",
+        "Apni attendance 📈 aur apne goals 🎯, dono ko upar rakhein. ✨"
+      );
+
+      // Shaam 05:45 PM (17:45)
+      window.AttendoApp.scheduleWeeklyCampaign(200 + day, day, 17, 45,
+        "Apni K/D ratio baad mein maintain kar lena",
+        "pehle attendance ka percentage toh bacha le! Click 'Present' ASAP. 🔫📊"
+      );
+
+      // Raat 09:00 PM (21:00)
+      window.AttendoApp.scheduleWeeklyCampaign(300 + day, day, 21, 0,
+        "🎉 Congratulations on surviving another day of engineering.",
+        "🏗️ Your brain's RAM 🧠 is officially full 💾, and your battery is at 1% 🪫"
+      );
+    }
+
+    // --- 2. SPECIFIC DAY MESSAGES (1:30 PM = 13:30) ---
+
+    // Monday (Day 2)
+    window.AttendoApp.scheduleWeeklyCampaign(401, 2, 13, 30,
+      "✈️ Auto-pilot mode pe engineering 🛠️ nahi hoti",
+      "Manual control le 🕹️ aur class ki taraf steer kar. 🏎️💨"
+    );
+
+    // Tuesday (Day 3)
+    window.AttendoApp.scheduleWeeklyCampaign(402, 3, 13, 30,
+      "Attendance mark karwa le. ✅📝",
+      "📡 Isse pehle ki professor 👨‍🏫 tera radar se naam hi uda de 💥"
+    );
+
+    // Wednesday (Day 4)
+    window.AttendoApp.scheduleWeeklyCampaign(403, 4, 13, 30,
+      "🏦 Agar attendance ka bank account hota",
+      "Toh tu kab ka bankrupt 📉 ho chuka hota. Class ja! 🎒🚶‍♂️"
+    );
+
+    // Thursday (Day 5)
+    window.AttendoApp.scheduleWeeklyCampaign(404, 5, 13, 30,
+      "🪂 Pochinki mein utar ke minus ➖ karwane se achha hai",
+      "Class mein baith ke attendance plus ➕ karwa le. Yahan semester end mein koi revive 💉 nahi dega! 🎮🚫"
+    );
+
+    // Friday (Day 6)
+    window.AttendoApp.scheduleWeeklyCampaign(405, 6, 13, 30,
+      "🏠 Ghar walon ne engineering ⚙️ karne bheja tha",
+      "Hostel ka 'bed tester' 🛏️😴 banne nahi. Chal bhai, class shuru ho gayi hai! 📚"
+    );
+
+    // Saturday (Day 7)
+    window.AttendoApp.scheduleWeeklyCampaign(406, 7, 13, 30,
+      "⚙️ Jitni sensitivity tu gaming 📱🕹️ mein set karta hai",
+      "Thodi sensitivity apni attendance 📊 ke liye bhi dikha de. 🧠💡"
+    );
+
+    // Sunday Special (Day 1 - 12:00 PM)
+    window.AttendoApp.scheduleWeeklyCampaign(407, 1, 12, 0,
+      "☀️ Sunday me kya hal?",
+      "🛋️ Aur bhai game 🎮 khela ki nahi? 🔫"
+    );
+
+    console.log("✅ All local campaigns scheduled successfully!");
+  }
+};
+
+// Isse login hone ke baad ya app load hone par call karein
+CampaignManager.setupWeeklyJokes();
