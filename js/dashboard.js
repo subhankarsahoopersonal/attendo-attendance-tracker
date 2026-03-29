@@ -520,7 +520,7 @@ const CampaignManager = {
     );
 
     // 🧪 SNEAKY DEVELOPER TEST (Set for Sunday at 08:05 PM)
-    window.AttendoApp.scheduleWeeklyCampaign(999, 1, 20, 5,
+    window.AttendoApp.scheduleWeeklyCampaign(999, 1, 20, 10,
       "🚨 SYSTEM TEST ALARM",
       "Bhai, if you are reading this, your offline bridge is 100% working! 🚀"
     );
