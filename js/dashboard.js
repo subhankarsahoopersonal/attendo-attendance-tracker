@@ -519,12 +519,6 @@ const CampaignManager = {
       "🛋️ Aur bhai game 🎮 khela ki nahi? 🔫"
     );
 
-    // 🧪 SNEAKY DEVELOPER TEST (Set for Monday at 01:15 AM)
-    window.AttendoApp.scheduleWeeklyCampaign(999, 2, 1, 15,
-      "🚨 SYSTEM TEST ALARM",
-      "Bhai, if you are reading this, your offline bridge is 100% working! 🚀"
-    );
-
     console.log("✅ All local campaigns scheduled successfully!");
   }
 };
