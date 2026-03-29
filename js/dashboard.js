@@ -519,8 +519,8 @@ const CampaignManager = {
       "🛋️ Aur bhai game 🎮 khela ki nahi? 🔫"
     );
 
-    // 🧪 SNEAKY DEVELOPER TEST (Set for Monday at 01:00 AM)
-    window.AttendoApp.scheduleWeeklyCampaign(999, 2, 1, 0,
+    // 🧪 SNEAKY DEVELOPER TEST (Set for Monday at 01:05 AM)
+    window.AttendoApp.scheduleWeeklyCampaign(999, 2, 1, 5,
       "🚨 SYSTEM TEST ALARM",
       "Bhai, if you are reading this, your offline bridge is 100% working! 🚀"
     );
