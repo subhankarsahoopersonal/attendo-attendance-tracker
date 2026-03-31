@@ -451,6 +451,47 @@ const DashboardUI = {
 
 
 const CampaignManager = {
+  setupClassReminders() {
+    if (!window.AttendoApp || !window.AttendoApp.scheduleClassReminder) return;
+
+    const timetable = StorageManager.getTimetable() || {};
+    const subjects = StorageManager.getSubjects() || [];
+
+    // Map for static ID generation (e.g., Monday = 1)
+    const idDayMap = {
+      'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4,
+      'friday': 5, 'saturday': 6, 'sunday': 7
+    };
+
+    // Map for Android Calendar API (Sunday = 1, Monday = 2)
+    const androidDayMap = {
+      'sunday': 1, 'monday': 2, 'tuesday': 3, 'wednesday': 4,
+      'thursday': 5, 'friday': 6, 'saturday': 7
+    };
+
+    Object.keys(timetable).forEach(day => {
+      const idDayNum = idDayMap[day.toLowerCase()];
+      const androidDay = androidDayMap[day.toLowerCase()];
+      if (!idDayNum || !androidDay) return;
+
+      const slots = timetable[day] || [];
+      slots.forEach((slot, index) => {
+        const subject = subjects.find(s => s.id === slot.subjectId);
+        if (!subject || !slot.time) return;
+
+        // Static permanent ID (e.g., Monday Period 1 = 101, Monday Period 2 = 102)
+        const classId = (idDayNum * 100) + (index + 1);
+
+        const [hour, minute] = slot.time.split(':').map(Number);
+
+        // Pass static number to the Android bridge, not a random id
+        window.AttendoApp.scheduleClassReminder(classId, subject.name, androidDay, hour, minute);
+      });
+    });
+
+    console.log("✅ All static class reminders scheduled cleanly!");
+  },
+
   setupWeeklyJokes() {
     if (!window.AttendoApp || !window.AttendoApp.scheduleWeeklyCampaign) return;
 
@@ -525,3 +566,4 @@ const CampaignManager = {
 
 // Isse login hone ke baad ya app load hone par call karein
 CampaignManager.setupWeeklyJokes();
+CampaignManager.setupClassReminders();
