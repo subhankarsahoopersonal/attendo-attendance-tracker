@@ -451,19 +451,28 @@ const DashboardUI = {
 
 
 const CampaignManager = {
+  // Helper function to safely calculate the 15-minute warning
+  getReminderTime(classHour, classMinute) {
+    let date = new Date();
+    date.setHours(classHour);
+    date.setMinutes(classMinute - 15);
+    return {
+      hour: date.getHours(),
+      minute: date.getMinutes()
+    };
+  },
+
   setupClassReminders() {
     if (!window.AttendoApp || !window.AttendoApp.scheduleClassReminder) return;
 
     const timetable = StorageManager.getTimetable() || {};
     const subjects = StorageManager.getSubjects() || [];
 
-    // Map for static ID generation (e.g., Monday = 1)
     const idDayMap = {
       'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4,
       'friday': 5, 'saturday': 6, 'sunday': 7
     };
 
-    // Map for Android Calendar API (Sunday = 1, Monday = 2)
     const androidDayMap = {
       'sunday': 1, 'monday': 2, 'tuesday': 3, 'wednesday': 4,
       'thursday': 5, 'friday': 6, 'saturday': 7
@@ -479,13 +488,25 @@ const CampaignManager = {
         const subject = subjects.find(s => s.id === slot.subjectId);
         if (!subject || !slot.time) return;
 
-        // Static permanent ID (e.g., Monday Period 1 = 101, Monday Period 2 = 102)
         const classId = (idDayNum * 100) + (index + 1);
-
         const [hour, minute] = slot.time.split(':').map(Number);
 
-        // Pass static number to the Android bridge, not a random id
-        window.AttendoApp.scheduleClassReminder(classId, subject.name, androidDay, hour, minute);
+        // 1. Calculate the exact 15-minute warning
+        const reminder = this.getReminderTime(hour, minute);
+
+        // 2. Grab the room number safely
+        const roomNumber = slot.room || "";
+
+        // 3. Send to Android in the EXACT order Kotlin expects!
+        // (id, dayOfWeek, hour, minute, className, roomNumber)
+        window.AttendoApp.scheduleClassReminder(
+          classId,
+          androidDay,
+          reminder.hour,
+          reminder.minute,
+          subject.name,
+          roomNumber
+        );
       });
     });
 
