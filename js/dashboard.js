@@ -417,6 +417,7 @@ const DashboardUI = {
           if (upcomingClass && upcomingClass.subject) {
             nextClassString = `${upcomingClass.subject.name} (${upcomingClass.time})`;
 
+            // 🛡️ REVERT BACK TO NOTES
             try {
               if (upcomingClass.noteText) {
                 upcomingNote = upcomingClass.noteText;
@@ -430,8 +431,7 @@ const DashboardUI = {
           }
         }
 
-        // 🚀 MOVED OUTSIDE THE IF STATEMENT!
-        // Pack and send! (This will now ALWAYS run, updating the widget perfectly)
+        // 📦 Pack the payload with the Note again!
         const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote;
 
         if (window.AttendoApp.syncAttendanceData) {
@@ -491,21 +491,19 @@ const CampaignManager = {
         const classId = (idDayNum * 100) + (index + 1);
         const [hour, minute] = slot.time.split(':').map(Number);
 
-        // 1. Calculate the exact 15-minute warning
         const reminder = this.getReminderTime(hour, minute);
 
-        // 2. Grab the room number safely
-        const roomNumber = slot.room || "";
+        // 🛡️ THE FIX: Grab the Note you wrote in the app, and use it as the room!
+        const roomNumber = StorageManager.getNote(slot.id) || "";
 
-        // 3. Send to Android in the EXACT order Kotlin expects!
-        // (id, dayOfWeek, hour, minute, className, roomNumber)
+        // Send to Android
         window.AttendoApp.scheduleClassReminder(
           classId,
           androidDay,
           reminder.hour,
           reminder.minute,
           subject.name,
-          roomNumber
+          roomNumber // 👈 This is now your note!
         );
       });
     });
