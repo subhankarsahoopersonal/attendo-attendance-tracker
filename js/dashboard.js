@@ -488,8 +488,12 @@ const CampaignManager = {
         const subject = subjects.find(s => s.id === slot.subjectId);
         if (!subject || !slot.time) return;
 
-        const classId = (idDayNum * 100) + (index + 1);
         const [hour, minute] = slot.time.split(':').map(Number);
+
+        // 🛡️ THE FIX: The Time-Hash ID
+        // Example: Wednesday (Day 4) at 11:30 AM becomes ID: 41130
+        // This NEVER changes, even if you reorder your timetable!
+        const classId = (androidDay * 10000) + (hour * 100) + minute;
 
         const reminder = this.getReminderTime(hour, minute);
 
