@@ -431,8 +431,31 @@ const DashboardUI = {
           }
         }
 
+        // 🛡️ THE TRANSLATOR: Swap IDs for real Class Names
+        let timetableJsonString = "{}";
+        if (typeof StorageManager !== 'undefined') {
+          const rawTimetable = StorageManager.getTimetable();
+          const subjects = StorageManager.getSubjects(); // Grab the list of actual subjects
+
+          const cleanTimetable = {};
+
+          // Loop through the days and build a clean, readable schedule for Android
+          for (const day in rawTimetable) {
+            cleanTimetable[day] = rawTimetable[day].map(slot => {
+              // Find the matching subject name
+              const subjectInfo = subjects.find(s => s.id === slot.subjectId);
+              return {
+                time: slot.time,
+                name: subjectInfo ? subjectInfo.name : "Class"
+              };
+            });
+          }
+
+          timetableJsonString = JSON.stringify(cleanTimetable);
+        }
+
         // 📦 Pack the payload with the Note again!
-        const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote;
+        const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote + "|" + timetableJsonString;
 
         if (window.AttendoApp.syncAttendanceData) {
           window.AttendoApp.syncAttendanceData(payload);
