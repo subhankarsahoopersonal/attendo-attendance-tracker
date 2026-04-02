@@ -458,13 +458,12 @@ const DashboardUI = {
           console.error("Translator Error:", e);
         }
 
-        // 📦 Pack the payload exactly how Kotlin expects it: Number + Split + JSON
-        const payload = cleanPercentage + "|JSON_SPLIT|" + timetableJsonString;
+        // 🚨 THE DUMMY TEST: Forcing a fake schedule for Thursday
+        const testJson = '{"thursday": [{"time": "23:59", "name": "BRIDGE IS WORKING"}]}';
+        const payload = cleanPercentage + "|JSON_SPLIT|" + testJson;
 
-        // 🚨 ADD THIS LINE JUST FOR TESTING:
-        alert("Payload being sent: " + payload);
-
-        if (window.AttendoApp.syncAttendanceData) {
+        // Note: Removed the secondary check here, sometimes Android proxies block the dot check
+        if (window.AttendoApp) {
           window.AttendoApp.syncAttendanceData(payload);
         }
 
