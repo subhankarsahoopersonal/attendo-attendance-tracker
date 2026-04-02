@@ -461,6 +461,9 @@ const DashboardUI = {
         // 📦 Pack the payload exactly how Kotlin expects it: Number + Split + JSON
         const payload = cleanPercentage + "|JSON_SPLIT|" + timetableJsonString;
 
+        // 🚨 ADD THIS LINE JUST FOR TESTING:
+        alert("Payload being sent: " + payload);
+
         if (window.AttendoApp.syncAttendanceData) {
           window.AttendoApp.syncAttendanceData(payload);
         }
