@@ -433,29 +433,33 @@ const DashboardUI = {
 
         // 🛡️ THE TRANSLATOR: Swap IDs for real Class Names
         let timetableJsonString = "{}";
-        if (typeof StorageManager !== 'undefined') {
-          const rawTimetable = StorageManager.getTimetable();
-          const subjects = StorageManager.getSubjects(); // Grab the list of actual subjects
+        try {
+          if (typeof StorageManager !== 'undefined') {
+            const rawTimetable = StorageManager.getTimetable() || {};
+            const subjects = StorageManager.getSubjects() || [];
 
-          const cleanTimetable = {};
+            const cleanTimetable = {};
 
-          // Loop through the days and build a clean, readable schedule for Android
-          for (const day in rawTimetable) {
-            cleanTimetable[day] = rawTimetable[day].map(slot => {
-              // Find the matching subject name
-              const subjectInfo = subjects.find(s => s.id === slot.subjectId);
-              return {
-                time: slot.time,
-                name: subjectInfo ? subjectInfo.name : "Class"
-              };
-            });
+            // Loop through the days and build a clean, readable schedule for Android
+            for (const day in rawTimetable) {
+              if (Array.isArray(rawTimetable[day])) {
+                cleanTimetable[day] = rawTimetable[day].map(slot => {
+                  const subjectInfo = subjects.find(s => s.id === slot.subjectId);
+                  return {
+                    time: slot.time || "00:00",
+                    name: subjectInfo ? subjectInfo.name : "Class"
+                  };
+                });
+              }
+            }
+            timetableJsonString = JSON.stringify(cleanTimetable);
           }
-
-          timetableJsonString = JSON.stringify(cleanTimetable);
+        } catch (e) {
+          console.error("Translator Error:", e);
         }
 
-        // 📦 Pack the payload with the Note again!
-        const payload = cleanPercentage + "|" + nextClassString + "|" + upcomingNote + "|" + timetableJsonString;
+        // 📦 Pack the payload exactly how Kotlin expects it: Number + Split + JSON
+        const payload = cleanPercentage + "|JSON_SPLIT|" + timetableJsonString;
 
         if (window.AttendoApp.syncAttendanceData) {
           window.AttendoApp.syncAttendanceData(payload);
