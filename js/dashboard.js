@@ -458,9 +458,8 @@ const DashboardUI = {
           console.error("Translator Error:", e);
         }
 
-        // 🚨 THE DUMMY TEST: Forcing a fake schedule for Thursday
-        const testJson = '{"thursday": [{"time": "23:59", "name": "BRIDGE IS WORKING"}]}';
-        const payload = cleanPercentage + "|JSON_SPLIT|" + testJson;
+        // 📦 Pack the REAL payload exactly how Kotlin expects it
+        const payload = cleanPercentage + "|JSON_SPLIT|" + timetableJsonString;
 
         // Note: Removed the secondary check here, sometimes Android proxies block the dot check
         if (window.AttendoApp) {
