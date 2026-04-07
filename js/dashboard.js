@@ -3,6 +3,9 @@
  * Handles rendering of the main dashboard components
  */
 
+// 🔒 SYNC LOCK: Prevents old server data from overwriting new local clicks
+let isActivelyClicking = false;
+
 const DashboardUI = {
 
   init() {
@@ -331,6 +334,9 @@ const DashboardUI = {
    * Handle attendance marking
    */
   mark(slotId, subjectId, status) {
+    // 1. Lock the UI immediately so background fetched can't overwrite it
+    isActivelyClicking = true;
+
     // 1. Save to your local cache instantly (Instant UI response)
     StorageManager.markAttendance(slotId, subjectId, status);
 
@@ -349,6 +355,11 @@ const DashboardUI = {
         console.log("Offline mode: Firebase has queued your attendance mark.");
       });
     }
+
+    // 2. Unlock it after 3 seconds (giving the server time to save your new data)
+    setTimeout(() => {
+      isActivelyClicking = false;
+    }, 3000);
   },
 
   updateQuickStats() {

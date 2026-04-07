@@ -51,6 +51,12 @@ const AuthManager = {
             if (hasCloudData) {
                 await FirestoreSync.pullAll(user.uid);
 
+                // 🛑 THE BOUNCER: Check the lock before updating the screen!
+                if (typeof isActivelyClicking !== 'undefined' && isActivelyClicking) {
+                    console.log("Ignored old Firebase data to protect your recent click!");
+                    return; // Stop right here!
+                }
+
                 // 🔄 QUIET REFRESH: Redraw the screen to show any new cloud data
                 if (typeof DashboardUI !== 'undefined') {
                     DashboardUI.init();
