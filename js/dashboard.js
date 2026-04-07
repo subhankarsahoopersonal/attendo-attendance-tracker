@@ -340,6 +340,9 @@ const DashboardUI = {
     // 1. Save to your local cache instantly (Instant UI response)
     StorageManager.markAttendance(slotId, subjectId, status);
 
+    // 🚩 THE DIRTY FLAG: Tell the phone's hard drive we have unsynced data!
+    localStorage.setItem('attendo_needs_sync', 'true');
+
     // Refresh UI immediately so the user feels no lag
     this.renderToday();
     this.renderSubjectStats();

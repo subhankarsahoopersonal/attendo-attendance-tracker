@@ -48,7 +48,18 @@ const AuthManager = {
         // ☁️ SILENT BACKGROUND SYNC: Now it is truly non-blocking!
         try {
             const hasCloudData = await FirestoreSync.hasData(user.uid);
+
+            // 🚀 THE RECOVERY LAUNCH: Did the user make changes while offline yesterday?
+            if (localStorage.getItem('attendo_needs_sync') === 'true') {
+                console.log("Unsynced offline data found! Pushing local cache to cloud first.");
+                // Force the upload of our local data first
+                await FirestoreSync.pushAll(user.uid);
+                // Remove the sticky note so we don't upload endlessly
+                localStorage.removeItem('attendo_needs_sync');
+            }
+
             if (hasCloudData) {
+                // Now it is safe to pull, because we already uploaded any missing homework
                 await FirestoreSync.pullAll(user.uid);
 
                 // 🛑 THE BOUNCER: Check the lock before updating the screen!
