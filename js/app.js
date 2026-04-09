@@ -861,10 +861,360 @@ const App = {
     },
 
     renderSettingsPage() {
-        // We don't dynamically render settings yet, they are static in HTML
-        // But we might want to populate values
         const settings = StorageManager.getSettings();
-        // Implementation needed if we want to bind inputs to settings
+        // Render semester archives dynamically
+        this.renderSemesterArchives();
+    },
+
+    // ========================================
+    // Semester Management
+    // ========================================
+
+    openNewSemesterModal() {
+        const subjects = StorageManager.getSubjects();
+        const history = StorageManager.getHistory();
+
+        // Build a quick summary of what will be archived
+        const totalSubjects = subjects.length;
+        const totalClasses = subjects.reduce((s, sub) => s + sub.totalHeld, 0);
+        const totalAttended = subjects.reduce((s, sub) => s + sub.attended, 0);
+        const overallPct = totalClasses > 0 ? ((totalAttended / totalClasses) * 100).toFixed(1) : '0';
+
+        const content = `
+            <div class="new-semester-modal">
+                <div class="semester-warning-banner">
+                    <div class="semester-warning-icon">⚠️</div>
+                    <div class="semester-warning-text">
+                        <strong>This will archive & wipe ALL current data</strong>
+                        <p>Subjects, timetable, attendance history — everything will be cleared. 
+                        Your data will be saved as an archive you can view or download later.</p>
+                    </div>
+                </div>
+
+                <div class="semester-archive-preview">
+                    <div class="semester-preview-title">What will be archived:</div>
+                    <div class="semester-preview-stats">
+                        <div class="semester-preview-stat">
+                            <span class="semester-preview-num">${totalSubjects}</span>
+                            <span class="semester-preview-label">Subjects</span>
+                        </div>
+                        <div class="semester-preview-stat">
+                            <span class="semester-preview-num">${totalClasses}</span>
+                            <span class="semester-preview-label">Classes</span>
+                        </div>
+                        <div class="semester-preview-stat">
+                            <span class="semester-preview-num">${overallPct}%</span>
+                            <span class="semester-preview-label">Attendance</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: var(--space-lg);">
+                    <label class="form-label">Name this semester</label>
+                    <input type="text" id="new-semester-name" class="form-input" 
+                           placeholder="e.g. 3rd Sem, Fall 2026, etc." 
+                           maxlength="50">
+                    <div class="settings-description" style="margin-top: 4px;">This name helps you identify the archive later.</div>
+                </div>
+
+                <div class="modal-footer" style="margin-top: var(--space-lg);">
+                    <button class="btn btn-ghost" onclick="document.querySelector('.modal-overlay').classList.remove('active')">Cancel</button>
+                    <button class="btn btn-danger" onclick="App.startNewSemester()" id="start-semester-btn">
+                        🔄 Archive & Start New
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.openModal('Start New Semester', content);
+    },
+
+    async startNewSemester() {
+        const nameInput = document.getElementById('new-semester-name');
+        const name = nameInput ? nameInput.value.trim() : '';
+
+        if (!name) {
+            nameInput.style.borderColor = 'var(--color-danger)';
+            nameInput.placeholder = 'Please enter a semester name!';
+            nameInput.focus();
+            setTimeout(() => { nameInput.style.borderColor = ''; nameInput.placeholder = 'e.g. 3rd Sem, Fall 2026, etc.'; }, 2000);
+            return;
+        }
+
+        // Double-confirm
+        const confirmed = await this.showCustomConfirm(
+            `Are you absolutely sure? All current data will be archived as "${name}" and wiped clean.`
+        );
+        if (!confirmed) return;
+
+        // Archive and wipe
+        StorageManager.archiveCurrentSemester(name);
+
+        // Push to Firestore if logged in
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+            FirestoreSync.pushAll(currentUser.uid).catch(err => {
+                console.log('Offline mode: archive queued for sync');
+            });
+        }
+
+        // Close modal and reload UI
+        document.querySelector('.modal-overlay').classList.remove('active');
+        await this.showCustomAlert(`✅ "${name}" has been archived! Starting fresh.`);
+        location.reload();
+    },
+
+    downloadAttendanceCSV(archiveData) {
+        const data = archiveData || {
+            subjects: StorageManager.getSubjects(),
+            history: StorageManager.getHistory(),
+            settings: StorageManager.getSettings(),
+            name: 'Current Semester'
+        };
+
+        if (data.subjects.length === 0) {
+            this.showCustomAlert('No attendance data to export yet.');
+            return;
+        }
+
+        const csv = StorageManager.generateAttendanceCSV(data);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        const safeName = (data.name || 'attendo').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-').toLowerCase();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendo-${safeName}-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    },
+
+    downloadAttendancePDF(archiveData) {
+        const data = archiveData || {
+            subjects: StorageManager.getSubjects(),
+            history: StorageManager.getHistory(),
+            extraClasses: StorageManager.getExtraClasses(),
+            settings: StorageManager.getSettings(),
+            name: 'Current Semester'
+        };
+
+        if (data.subjects.length === 0) {
+            this.showCustomAlert('No attendance data to export yet.');
+            return;
+        }
+
+        const html = StorageManager.generateAttendancePDFHtml(data);
+
+        // Open in a new window for print-to-PDF
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            this.showCustomAlert('Please allow popups to generate the PDF report.');
+            return;
+        }
+        printWindow.document.write(html);
+        printWindow.document.close();
+
+        // Auto-trigger print dialog after content loads
+        printWindow.onload = () => {
+            setTimeout(() => printWindow.print(), 300);
+        };
+    },
+
+    renderSemesterArchives() {
+        const container = document.getElementById('semester-archives-container');
+        if (!container) return;
+
+        const archives = StorageManager.getSemesterArchives();
+
+        if (archives.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="padding: var(--space-lg);">
+                    <div class="empty-state-icon">📂</div>
+                    <p class="text-muted">No archived semesters yet</p>
+                    <p class="text-muted" style="font-size: var(--font-size-xs); margin-top: 4px;">
+                        When you start a new semester, your current data will appear here.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        // Render newest first
+        const cards = [...archives].reverse().map((arch, displayIdx) => {
+            const realIdx = archives.length - 1 - displayIdx;
+            const date = new Date(arch.archivedAt);
+            const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            const totalSubjects = arch.subjects.length;
+            const totalAttended = arch.subjects.reduce((s, sub) => s + sub.attended, 0);
+            const totalHeld = arch.subjects.reduce((s, sub) => s + sub.totalHeld, 0);
+            const totalCancelled = arch.subjects.reduce((s, sub) => s + sub.cancelled, 0);
+            const overallPct = totalHeld > 0 ? ((totalAttended / totalHeld) * 100).toFixed(1) : '0';
+
+            // Subject chips (max 5 shown)
+            const subjectChips = arch.subjects.slice(0, 5).map(s =>
+                `<span class="archive-subject-chip" style="--chip-color: ${s.color}">
+                    <span class="archive-chip-dot" style="background: ${s.color}"></span>
+                    ${s.name}
+                </span>`
+            ).join('');
+            const extraCount = arch.subjects.length > 5 ? arch.subjects.length - 5 : 0;
+
+            return `
+                <div class="archive-card">
+                    <div class="archive-card-accent"></div>
+                    <div class="archive-card-inner">
+                        <div class="archive-card-top">
+                            <div class="archive-card-info">
+                                <div class="archive-name-row">
+                                    <span class="archive-semester-badge">🎓</span>
+                                    <div class="archive-name">${arch.name}</div>
+                                </div>
+                                <div class="archive-date">📅 ${dateStr}</div>
+                                <div class="archive-stats-pills">
+                                    <span class="archive-pill">
+                                        <span class="archive-pill-icon">📚</span>
+                                        <span>${totalSubjects} Subjects</span>
+                                    </span>
+                                    <span class="archive-pill archive-pill--green">
+                                        <span class="archive-pill-icon">✅</span>
+                                        <span>${totalAttended} Attended</span>
+                                    </span>
+                                    <span class="archive-pill archive-pill--blue">
+                                        <span class="archive-pill-icon">📝</span>
+                                        <span>${totalHeld} Total</span>
+                                    </span>
+                                    ${totalCancelled > 0 ? `<span class="archive-pill archive-pill--yellow">
+                                        <span class="archive-pill-icon">🚫</span>
+                                        <span>${totalCancelled} Cancelled</span>
+                                    </span>` : ''}
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="archive-subjects-chips">
+                            ${subjectChips}
+                            ${extraCount > 0 ? `<span class="archive-subject-chip archive-chip-more">+${extraCount} more</span>` : ''}
+                        </div>
+                        <div class="archive-card-actions">
+                            <button class="archive-action-btn archive-action-btn--view" onclick="App.viewArchivedSemester(${realIdx})">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                View
+                            </button>
+                            <button class="archive-action-btn archive-action-btn--csv" onclick="App.downloadArchivedSemester(${realIdx}, 'csv')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                CSV
+                            </button>
+                            <button class="archive-action-btn archive-action-btn--pdf" onclick="App.downloadArchivedSemester(${realIdx}, 'pdf')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                PDF
+                            </button>
+                            <button class="archive-action-btn archive-action-btn--delete" onclick="App.deleteArchivedSemester(${realIdx})">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = cards;
+    },
+
+    viewArchivedSemester(index) {
+        const archives = StorageManager.getSemesterArchives();
+        const arch = archives[index];
+        if (!arch) return;
+
+        const date = new Date(arch.archivedAt);
+        const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const settings = arch.settings || StorageManager.getSettings();
+        const target = settings.targetAttendance || 75;
+
+        const totalAttended = arch.subjects.reduce((s, sub) => s + sub.attended, 0);
+        const totalHeld = arch.subjects.reduce((s, sub) => s + sub.totalHeld, 0);
+        const overallPct = totalHeld > 0 ? ((totalAttended / totalHeld) * 100).toFixed(1) : '0';
+
+        // Subject breakdown
+        const subjectRows = arch.subjects.map(sub => {
+            const pct = sub.totalHeld > 0 ? ((sub.attended / sub.totalHeld) * 100).toFixed(1) : '0';
+            const isSafe = parseFloat(pct) >= target;
+            return `
+                <div class="archive-view-subject">
+                    <div class="archive-view-subject-name">
+                        <span class="subject-color" style="background: ${sub.color}"></span>
+                        ${sub.name}
+                    </div>
+                    <div class="archive-view-subject-stats">
+                        <span>${sub.attended}/${sub.totalHeld}</span>
+                        <span class="subject-percentage ${isSafe ? 'safe' : 'danger'}">${pct}%</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        const content = `
+            <div class="archive-view-modal">
+                <div class="archive-view-header">
+                    <div class="archive-view-date">Archived on ${dateStr}</div>
+                    <div class="archive-view-overall">
+                        <div class="archive-view-overall-pct">${overallPct}%</div>
+                        <div class="archive-view-overall-label">Overall Attendance</div>
+                    </div>
+                    <div class="semester-preview-stats" style="margin-top: var(--space-md);">
+                        <div class="semester-preview-stat">
+                            <span class="semester-preview-num">${arch.subjects.length}</span>
+                            <span class="semester-preview-label">Subjects</span>
+                        </div>
+                        <div class="semester-preview-stat">
+                            <span class="semester-preview-num">${totalAttended}</span>
+                            <span class="semester-preview-label">Attended</span>
+                        </div>
+                        <div class="semester-preview-stat">
+                            <span class="semester-preview-num">${totalHeld}</span>
+                            <span class="semester-preview-label">Total</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="archive-view-subjects">
+                    <h4 style="margin-bottom: var(--space-sm); color: var(--text-secondary);">Subject Breakdown</h4>
+                    ${subjectRows}
+                </div>
+
+                <div class="modal-footer" style="margin-top: var(--space-lg);">
+                    <button class="btn btn-outline" onclick="App.downloadArchivedSemester(${index}, 'csv')">📊 Download CSV</button>
+                    <button class="btn btn-outline" onclick="App.downloadArchivedSemester(${index}, 'pdf')">📄 Download PDF</button>
+                </div>
+            </div>
+        `;
+
+        this.openModal(`🎓 ${arch.name}`, content);
+    },
+
+    downloadArchivedSemester(index, format) {
+        const archives = StorageManager.getSemesterArchives();
+        const arch = archives[index];
+        if (!arch) return;
+
+        if (format === 'csv') {
+            this.downloadAttendanceCSV(arch);
+        } else if (format === 'pdf') {
+            this.downloadAttendancePDF(arch);
+        }
+    },
+
+    async deleteArchivedSemester(index) {
+        const archives = StorageManager.getSemesterArchives();
+        const arch = archives[index];
+        if (!arch) return;
+
+        const confirmed = await this.showCustomConfirm(
+            `Delete the "${arch.name}" archive permanently? This cannot be undone.`
+        );
+        if (!confirmed) return;
+
+        StorageManager.deleteArchive(arch.id);
+        this.renderSemesterArchives();
     },
 
     // ========================================

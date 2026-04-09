@@ -312,6 +312,53 @@
                 </div>
 
                 <div class="settings-section">
+                    <h2 class="settings-section-title">Semester Management</h2>
+                    <div class="settings-card">
+                        <div class="semester-actions-grid">
+                            <div class="semester-action-card" id="semester-download-card">
+                                <div class="semester-action-icon">📥</div>
+                                <div class="semester-action-info">
+                                    <div class="settings-label">Download Attendance Report</div>
+                                    <div class="settings-description">Export your current semester's attendance data
+                                    </div>
+                                </div>
+                                <div class="semester-action-btns">
+                                    <button class="btn btn-sm btn-outline" onclick="App.downloadAttendanceCSV()">
+                                        📊 CSV
+                                    </button>
+                                    <button class="btn btn-sm btn-outline" onclick="App.downloadAttendancePDF()">
+                                        📄 PDF
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="semester-action-card semester-action-card--danger" id="semester-new-card">
+                                <div class="semester-action-icon">🔄</div>
+                                <div class="semester-action-info">
+                                    <div class="settings-label">Start New Semester</div>
+                                    <div class="settings-description">Archive current data & start fresh</div>
+                                </div>
+                                <div class="semester-action-btns">
+                                    <button class="btn btn-sm btn-danger" onclick="App.openNewSemesterModal()">
+                                        Start New →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h2 class="settings-section-title">Past Semesters</h2>
+                    <div class="settings-card" id="semester-archives-container">
+                        <!-- Dynamically rendered by App.renderSemesterArchives() -->
+                        <div class="empty-state" style="padding: var(--space-lg);">
+                            <div class="empty-state-icon">📂</div>
+                            <p class="text-muted">No archived semesters yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <h2 class="settings-section-title">Data Management</h2>
                     <div class="settings-card">
                         <div class="import-export-btns">

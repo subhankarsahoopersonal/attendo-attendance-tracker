@@ -3188,3 +3188,635 @@ select.form-input option {
         transform: scale(1);
     }
 }
+
+/* ========================================
+   Semester Management
+   ======================================== */
+
+/* Button variants for semester feature */
+.btn-sm {
+    padding: 6px 14px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--accent-primary);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.btn-outline:hover {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+}
+
+/* Semester Actions Grid */
+.semester-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+}
+
+.semester-action-card {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-xl);
+    background: linear-gradient(145deg, rgba(30, 30, 42, 0.6), rgba(20, 20, 30, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-lg);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    text-align: left;
+}
+
+.semester-action-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.semester-action-card:hover {
+    transform: translateY(-4px);
+    background: linear-gradient(145deg, rgba(40, 40, 55, 0.7), rgba(25, 25, 35, 0.9));
+    border-color: rgba(99, 102, 241, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 20px rgba(99, 102, 241, 0.1);
+}
+
+.semester-action-card:hover::before {
+    opacity: 1;
+}
+
+.semester-action-card--danger::before {
+    background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.semester-action-card--danger:hover {
+    border-color: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 20px rgba(16, 185, 129, 0.1);
+}
+
+.semester-action-icon {
+    font-size: 26px;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    color: var(--accent-primary);
+    transition: transform 0.3s ease;
+}
+
+.semester-action-card--danger .semester-action-icon {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.semester-action-card:hover .semester-action-icon {
+    transform: scale(1.05) rotate(-5deg);
+}
+
+.semester-action-info {
+    margin-bottom: var(--space-lg);
+}
+
+.semester-action-info .settings-label {
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin-bottom: 6px;
+    color: white;
+}
+
+.semester-action-info .settings-description {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.semester-action-btns {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: auto;
+}
+
+/* New Semester Modal */
+.new-semester-modal {
+    max-width: 500px;
+}
+
+.semester-warning-banner {
+    display: flex;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+}
+
+.semester-warning-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.semester-warning-text strong {
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+}
+
+.semester-warning-text p {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    margin-top: 4px;
+    line-height: 1.5;
+}
+
+.semester-archive-preview {
+    background: rgba(99, 102, 241, 0.06);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+}
+
+.semester-preview-title {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: var(--space-sm);
+    font-weight: 600;
+}
+
+.semester-preview-stats {
+    display: flex;
+    gap: var(--space-xl);
+    justify-content: center;
+}
+
+.semester-preview-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.semester-preview-num {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+.semester-preview-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* Archive Cards — Premium Redesign */
+.archive-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all var(--transition-normal);
+    margin-bottom: var(--space-lg);
+}
+
+.archive-card:last-child {
+    margin-bottom: 0;
+}
+
+.archive-card:hover {
+    border-color: rgba(99, 102, 241, 0.35);
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.12), 0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+/* Gradient accent bar at top */
+.archive-card-accent {
+    height: 4px;
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 40%, #a855f7 70%, #6366f1 100%);
+    background-size: 200% 100%;
+    animation: shimmer-accent 3s ease-in-out infinite;
+}
+
+@keyframes shimmer-accent {
+
+    0%,
+    100% {
+        background-position: 0% 0%;
+    }
+
+    50% {
+        background-position: 100% 0%;
+    }
+}
+
+.archive-card-inner {
+    padding: var(--space-xl) var(--space-xl) var(--space-2xl);
+}
+
+/* Top section: info + ring */
+.archive-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-lg);
+}
+
+.archive-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.archive-name-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: 4px;
+}
+
+.archive-semester-badge {
+    font-size: 22px;
+    filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.3));
+}
+
+.archive-name {
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+    background: linear-gradient(135deg, var(--text-primary) 0%, rgba(255, 255, 255, 0.8) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.archive-date {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-bottom: var(--space-md);
+}
+
+/* Stats pills */
+.archive-stats-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.archive-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.archive-pill-icon {
+    font-size: 12px;
+}
+
+.archive-pill--green {
+    background: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.archive-pill--blue {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+}
+
+.archive-pill--yellow {
+    background: rgba(234, 179, 8, 0.08);
+    border-color: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+}
+
+/* Circular percentage ring */
+.archive-ring-container {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    flex-shrink: 0;
+}
+
+.archive-ring {
+    width: 90px;
+    height: 90px;
+    transform: rotate(-90deg);
+}
+
+.archive-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 6;
+}
+
+.archive-ring-fill {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 0 6px currentColor);
+}
+
+.archive-ring-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+}
+
+.archive-ring-pct {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+
+.archive-ring-pct-sign {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* Subject chips */
+.archive-subjects-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.archive-subject-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.archive-subject-chip:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: var(--chip-color, rgba(255, 255, 255, 0.15));
+}
+
+.archive-chip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 4px currentColor;
+}
+
+.archive-chip-more {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Action buttons bar */
+.archive-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: var(--space-md);
+    padding: var(--space-lg) var(--space-sm) var(--space-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.archive-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+}
+
+.archive-action-btn svg {
+    flex-shrink: 0;
+}
+
+.archive-action-btn:hover {
+    transform: translateY(-2px);
+}
+
+.archive-action-btn--view {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.25);
+    color: #a5b4fc;
+}
+
+.archive-action-btn--view:hover {
+    background: rgba(99, 102, 241, 0.25);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+.archive-action-btn--csv {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+}
+
+.archive-action-btn--csv:hover {
+    background: rgba(34, 197, 94, 0.22);
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.35);
+}
+
+.archive-action-btn--pdf {
+    background: rgba(251, 146, 60, 0.1);
+    border-color: rgba(251, 146, 60, 0.2);
+    color: #fdba74;
+}
+
+.archive-action-btn--pdf:hover {
+    background: rgba(251, 146, 60, 0.22);
+    box-shadow: 0 4px 16px rgba(251, 146, 60, 0.2);
+    border-color: rgba(251, 146, 60, 0.35);
+}
+
+.archive-action-btn--delete {
+    margin-left: auto;
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.15);
+    color: rgba(239, 68, 68, 0.5);
+    padding: 10px 14px;
+}
+
+.archive-action-btn--delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15);
+}
+
+/* Archive View Modal */
+.archive-view-modal {
+    max-width: 500px;
+}
+
+.archive-view-header {
+    text-align: center;
+    padding-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: var(--space-lg);
+}
+
+.archive-view-date {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-bottom: var(--space-sm);
+}
+
+.archive-view-overall {
+    margin-bottom: var(--space-sm);
+}
+
+.archive-view-overall-pct {
+    font-size: 48px;
+    font-weight: 700;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.archive-view-overall-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.archive-view-subjects {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.archive-view-subject {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.archive-view-subject-name {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: 500;
+}
+
+.archive-view-subject-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.archive-view-subject-stats .subject-percentage {
+    font-size: var(--font-size-md);
+    font-weight: 700;
+}
+
+/* Mobile responsive for semester management */
+@media (max-width: 768px) {
+    .semester-actions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .semester-preview-stats {
+        gap: var(--space-lg);
+    }
+
+    .archive-card-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .archive-ring-container {
+        align-self: center;
+        margin-top: var(--space-sm);
+    }
+
+    .archive-card-actions {
+        flex-wrap: wrap;
+    }
+
+    .archive-action-btn--delete {
+        margin-left: 0;
+    }
+
+    .semester-warning-banner {
+        flex-direction: column;
+        text-align: center;
+    }
+}

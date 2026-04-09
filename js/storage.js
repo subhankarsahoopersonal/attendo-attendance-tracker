@@ -20,7 +20,8 @@ const StorageManager = {
         HISTORY: 'bunkManager_history',
         SETTINGS: 'bunkManager_settings',
         EXTRA_CLASSES: 'bunkManager_extraClasses',
-        NOTES: 'bunkManager_notes'
+        NOTES: 'bunkManager_notes',
+        SEMESTER_ARCHIVES: 'bunkManager_semesterArchives'
     },
 
     // Default settings
@@ -639,13 +640,280 @@ const StorageManager = {
     },
 
     /**
-     * Clear all data
+     * Clear all data (preserves semester archives and settings)
      */
     clearAllData() {
+        // Preserve archives and settings across clears
+        const archives = localStorage.getItem(this.KEYS.SEMESTER_ARCHIVES);
         Object.values(this.KEYS).forEach(key => {
             localStorage.removeItem(key);
         });
+        // Restore archives
+        if (archives) localStorage.setItem(this.KEYS.SEMESTER_ARCHIVES, archives);
         this.init();
+    },
+
+    // ========================================
+    // Semester Archives
+    // ========================================
+
+    /**
+     * Get all semester archives
+     * @returns {Array}
+     */
+    getSemesterArchives() {
+        try {
+            return JSON.parse(localStorage.getItem(this.KEYS.SEMESTER_ARCHIVES)) || [];
+        } catch {
+            return [];
+        }
+    },
+
+    /**
+     * Save semester archives
+     * @param {Array} archives
+     */
+    setSemesterArchives(archives) {
+        localStorage.setItem(this.KEYS.SEMESTER_ARCHIVES, JSON.stringify(archives));
+    },
+
+    /**
+     * Archive the current semester and wipe all data
+     * @param {string} semesterName - User-given name for this semester
+     * @returns {Object} The created archive entry
+     */
+    archiveCurrentSemester(semesterName) {
+        const archive = {
+            id: this.generateId(),
+            name: semesterName,
+            archivedAt: new Date().toISOString(),
+            subjects: this.getSubjects(),
+            timetable: this.getTimetable(),
+            history: this.getHistory(),
+            extraClasses: this.getExtraClasses(),
+            notes: this.getNotes(),
+            settings: this.getSettings()
+        };
+
+        const archives = this.getSemesterArchives();
+        archives.push(archive);
+        this.setSemesterArchives(archives);
+
+        // Full wipe (clearAllData preserves archives)
+        this.clearAllData();
+
+        return archive;
+    },
+
+    /**
+     * Delete a semester archive by ID
+     * @param {string} archiveId
+     */
+    deleteArchive(archiveId) {
+        const archives = this.getSemesterArchives().filter(a => a.id !== archiveId);
+        this.setSemesterArchives(archives);
+    },
+
+    /**
+     * Generate CSV string from attendance data
+     * @param {Object} data - { subjects, history } — pass current or archived data
+     * @returns {string} CSV content
+     */
+    generateAttendanceCSV(data) {
+        const subjects = data.subjects || [];
+        const history = data.history || [];
+        const settings = data.settings || this.getSettings();
+
+        let csv = '\uFEFF'; // BOM for Excel Unicode support
+
+        // === Section 1: Subject Summary ===
+        csv += 'ATTENDANCE SUMMARY\r\n';
+        csv += 'Subject,Attended,Total Held,Cancelled,Percentage,Target,Status\r\n';
+
+        const target = settings.targetAttendance || 75;
+
+        subjects.forEach(sub => {
+            const pct = sub.totalHeld > 0 ? ((sub.attended / sub.totalHeld) * 100).toFixed(1) : '0.0';
+            const status = parseFloat(pct) >= target ? 'Safe' : 'At Risk';
+            csv += `"${sub.name}",${sub.attended},${sub.totalHeld},${sub.cancelled},${pct}%,${target}%,${status}\r\n`;
+        });
+
+        // Overall
+        const totalAttended = subjects.reduce((s, sub) => s + sub.attended, 0);
+        const totalHeld = subjects.reduce((s, sub) => s + sub.totalHeld, 0);
+        const overallPct = totalHeld > 0 ? ((totalAttended / totalHeld) * 100).toFixed(1) : '0.0';
+        csv += `\r\n"OVERALL",${totalAttended},${totalHeld},,${overallPct}%,,\r\n`;
+
+        // === Section 2: Daily Log ===
+        csv += '\r\n\r\nDAILY ATTENDANCE LOG\r\n';
+        csv += 'Date,Subject,Status\r\n';
+
+        // Sort history by date desc
+        const subjectMap = {};
+        subjects.forEach(s => subjectMap[s.id] = s.name);
+
+        const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
+        sorted.forEach(entry => {
+            const subName = subjectMap[entry.subjectId] || 'Unknown';
+            const statusLabel = entry.status.charAt(0).toUpperCase() + entry.status.slice(1);
+            const [y, m, d] = entry.date.split('-');
+            csv += `${d}-${m}-${y.slice(2)},"${subName}",${statusLabel}\r\n`;
+        });
+
+        return csv;
+    },
+
+    /**
+     * Generate a printable HTML report for PDF export
+     * @param {Object} data - { subjects, history, name }
+     * @returns {string} HTML string
+     */
+    generateAttendancePDFHtml(data) {
+        const subjects = data.subjects || [];
+        const history = data.history || [];
+        const settings = data.settings || this.getSettings();
+        const semesterName = data.name || 'Current Semester';
+        const target = settings.targetAttendance || 75;
+
+        const totalAttended = subjects.reduce((s, sub) => s + sub.attended, 0);
+        const totalHeld = subjects.reduce((s, sub) => s + sub.totalHeld, 0);
+        const totalCancelled = subjects.reduce((s, sub) => s + sub.cancelled, 0);
+        const overallPct = totalHeld > 0 ? ((totalAttended / totalHeld) * 100).toFixed(1) : '0.0';
+        const overallSafe = parseFloat(overallPct) >= target;
+
+        // Build subject cards
+        const subjectCards = subjects.map(sub => {
+            const pct = sub.totalHeld > 0 ? ((sub.attended / sub.totalHeld) * 100).toFixed(1) : '0.0';
+            const isSafe = parseFloat(pct) >= target;
+            const barColor = isSafe ? '#10b981' : parseFloat(pct) >= 50 ? '#f59e0b' : '#ef4444';
+            return `<div class="subject-card">
+                <div class="subject-card-header">
+                    <div class="subject-name-col"><span class="subject-dot" style="background:${sub.color}"></span><span class="subject-name">${sub.name}</span></div>
+                    <span class="subject-pct" style="color:${barColor}">${pct}%</span>
+                </div>
+                <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${Math.min(parseFloat(pct), 100)}%;background:${barColor}"></div></div>
+                <div class="subject-card-stats">
+                    <span>Attended: ${sub.attended}</span><span>Total: ${sub.totalHeld}</span><span>Cancelled: ${sub.cancelled}</span>
+                    <span class="status-badge" style="background:${isSafe ? '#ecfdf5' : '#fef2f2'};color:${isSafe ? '#059669' : '#dc2626'}">${isSafe ? 'Safe' : 'At Risk'}</span>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Build history rows
+        const subjectMap = {};
+        subjects.forEach(s => subjectMap[s.id] = s.name);
+        const extraClasses = data.extraClasses || [];
+        const extraClassIds = new Set(extraClasses.map(e => e.id));
+        const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
+        const historyRows = sorted.map((entry, i) => {
+            const subName = subjectMap[entry.subjectId] || 'Unknown';
+            const isAttended = entry.status === 'attended';
+            const isMissed = entry.status === 'missed';
+            const statusColor = isAttended ? '#059669' : isMissed ? '#dc2626' : '#d97706';
+            const statusBg = isAttended ? '#ecfdf5' : isMissed ? '#fef2f2' : '#fffbeb';
+            const isExtra = extraClassIds.has(entry.slotId);
+            const extraBadge = isExtra ? ' <span class="extra-badge">Extra</span>' : '';
+            const [y, m, d] = entry.date.split('-');
+            const formattedDate = `${d}-${m}-${y.slice(2)}`;
+            return `<tr style="background:${i % 2 === 0 ? '#fff' : '#fafafe'}">
+                <td style="font-weight:500">${formattedDate}</td>
+                <td>${subName}${extraBadge}</td>
+                <td><span class="log-badge" style="background:${statusBg};color:${statusColor}">${entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}</span></td>
+            </tr>`;
+        }).join('');
+
+        const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AttenDO - ${semesterName} Report</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; color: #1e293b; background: #f8fafc; }
+        .header { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%); color: white; padding: 48px 40px 40px; text-align: center; }
+        .header-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 12px; text-transform: uppercase; }
+        .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.5px; }
+        .header p { font-size: 14px; opacity: 0.85; }
+        .stats-bar { display: flex; gap: 0; margin: -24px 40px 32px; position: relative; z-index: 1; }
+        .stat-card { flex: 1; background: white; padding: 24px 20px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+        .stat-card:first-child { border-radius: 12px 0 0 12px; }
+        .stat-card:last-child { border-radius: 0 12px 12px 0; }
+        .stat-card .stat-num { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
+        .stat-card .stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; font-weight: 600; }
+        .stat-card.accent { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; }
+        .stat-card.accent .stat-label { color: rgba(255,255,255,0.7); }
+        .stat-card.green { border-top: 3px solid #10b981; }
+        .stat-card.blue { border-top: 3px solid #6366f1; }
+        .stat-card.orange { border-top: 3px solid #f59e0b; }
+        .content { padding: 0 40px 40px; }
+        .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #6366f1; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center; gap: 8px; }
+        .section-title::before { content: ''; display: inline-block; width: 4px; height: 16px; background: linear-gradient(to bottom, #6366f1, #a855f7); border-radius: 2px; }
+        .subject-card { background: white; border-radius: 10px; padding: 18px 20px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; }
+        .subject-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .subject-name-col { display: flex; align-items: center; gap: 10px; }
+        .subject-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .subject-name { font-weight: 700; font-size: 15px; }
+        .subject-pct { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+        .progress-bar-bg { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+        .progress-bar-fill { height: 100%; border-radius: 4px; }
+        .subject-card-stats { display: flex; gap: 16px; font-size: 12px; color: #64748b; flex-wrap: wrap; align-items: center; }
+        .status-badge { padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: auto; }
+        .log-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid #f1f5f9; margin-bottom: 8px; }
+        .log-table th { background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .log-table td { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .log-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .extra-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; background: #6366f1; color: white; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.5px; vertical-align: middle; }
+        .footer { text-align: center; padding: 24px 40px; border-top: 2px solid #e2e8f0; margin-top: 20px; }
+        .footer-brand { font-size: 16px; font-weight: 700; color: #6366f1; margin-bottom: 4px; }
+        .footer-sub { color: #94a3b8; font-size: 11px; }
+        .target-info { background: #f0f0ff; border: 1px solid #e0e0ff; border-radius: 8px; padding: 10px 16px; font-size: 12px; color: #4338ca; margin-bottom: 20px; font-weight: 500; }
+        @media print { body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-badge">Attendance Report</div>
+        <h1>AttenDO - ${semesterName}</h1>
+        <p>Generated on ${dateStr}</p>
+    </div>
+    <div class="stats-bar">
+        <div class="stat-card accent">
+            <div class="stat-num">${overallPct}%</div>
+            <div class="stat-label">Overall Attendance</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-num" style="color:#059669">${totalAttended}</div>
+            <div class="stat-label">Classes Attended</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-num" style="color:#4f46e5">${totalHeld}</div>
+            <div class="stat-label">Total Classes</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-num" style="color:#d97706">${subjects.length}</div>
+            <div class="stat-label">Subjects</div>
+        </div>
+    </div>
+    <div class="content">
+        <div class="target-info">Target Attendance: <strong>${target}%</strong> ${overallSafe ? ' - You are meeting your target!' : ' - You are below your target.'}</div>
+        <div class="section-title">Subject Breakdown</div>
+        ${subjectCards}
+        <div class="section-title">Attendance Log</div>
+        <table class="log-table">
+            <thead><tr><th>Date</th><th>Subject</th><th>Status</th></tr></thead>
+            <tbody>${historyRows}</tbody>
+        </table>
+
+    </div>
+    <div class="footer">
+        <div class="footer-brand">AttenDO</div>
+        <div class="footer-sub">Made with ❤️ by Subha - ${dateStr}</div>
+    </div>
+</body>
+</html>`;
     },
 
     // ========================================
@@ -713,6 +981,9 @@ const FirestoreSync = {
                 items: StorageManager.getExtraClasses()
             });
             batch.set(ref.doc('notes'), StorageManager.getNotes());
+            batch.set(ref.doc('semesterArchives'), {
+                items: StorageManager.getSemesterArchives()
+            });
 
             await batch.commit();
             console.log('Data pushed to Firestore');
@@ -756,6 +1027,9 @@ const FirestoreSync = {
                         break;
                     case 'notes':
                         StorageManager.setNotes(data || {}, true);
+                        break;
+                    case 'semesterArchives':
+                        StorageManager.setSemesterArchives(data.items || [], true);
                         break;
                 }
             });
@@ -803,6 +1077,9 @@ const FirestoreSync = {
                 case 'notes':
                     data = StorageManager.getNotes();
                     break;
+                case 'semesterArchives':
+                    data = { items: StorageManager.getSemesterArchives() };
+                    break;
                 default:
                     return;
             }
@@ -826,6 +1103,7 @@ const FirestoreSync = {
         setSettings: StorageManager.setSettings.bind(StorageManager),
         setExtraClasses: StorageManager.setExtraClasses.bind(StorageManager),
         setNotes: StorageManager.setNotes.bind(StorageManager),
+        setSemesterArchives: StorageManager.setSemesterArchives.bind(StorageManager),
     };
 
     StorageManager.setSubjects = function (subjects, skipSync) {
@@ -856,5 +1134,10 @@ const FirestoreSync = {
     StorageManager.setNotes = function (notes, skipSync) {
         original.setNotes(notes);
         if (!skipSync) FirestoreSync.syncKey('notes');
+    };
+
+    StorageManager.setSemesterArchives = function (archives, skipSync) {
+        original.setSemesterArchives(archives);
+        if (!skipSync) FirestoreSync.syncKey('semesterArchives');
     };
 })();
