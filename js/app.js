@@ -1014,30 +1014,29 @@ const App = {
         if (bodyMatch) {
             originalElement.innerHTML = bodyMatch[1];
         }
-        originalElement.style.position = 'absolute';
-        originalElement.style.left = '-9999px';
-        originalElement.style.top = '0';
-        document.body.appendChild(originalElement);
 
-        // 👻 THE GHOST CLONE: We create a duplicate of the report
+        // Safety check just in case
+        if (!originalElement) {
+            console.error("Could not find the report-container!");
+            return;
+        }
+
+        // 👻 THE GHOST CLONE
         const clone = originalElement.cloneNode(true);
 
-        // Force the clone to look like a desktop screen (800px wide)
-        // We push it 10,000 pixels off the screen so the user never sees it happening!
-        clone.style.position = 'fixed';
-        clone.style.left = '-10000px';
-        clone.style.top = '0px';
-        clone.style.width = '800px'; // Forces desktop CSS rules
+        // Instead of pushing it 10,000px away (which mobile browsers sometimes refuse to paint),
+        // we put it right at the top but hide it BEHIND your app using z-index.
+        clone.style.position = 'absolute';
+        clone.style.top = '0';
+        clone.style.left = '0';
+        clone.style.width = '800px';
         clone.style.height = 'auto';
-        clone.style.display = 'block'; // Overrides any mobile 'display: none'
-        clone.style.visibility = 'visible';
+        clone.style.zIndex = '-9999'; // Hides it behind everything else
+        clone.style.display = 'block';
         clone.style.backgroundColor = '#ffffff';
 
-        // Add the ghost to the actual webpage (required for the camera to see it)
+        // Add it to the page
         document.body.appendChild(clone);
-
-        // Remove the original off-screen element
-        document.body.removeChild(originalElement);
 
         const opt = {
             margin:       0.5,
@@ -1047,30 +1046,34 @@ const App = {
                 scale: 2,
                 useCORS: true,
                 scrollY: 0,
-                backgroundColor: '#ffffff'
+                windowWidth: 800 // Forces the camera to see the full 800px width
             },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
-        // 1. Android App Logic
-        if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
-            // Notice we are passing the CLONE to the camera, not the original element!
-            html2pdf().set(opt).from(clone).outputPdf('datauristring').then(function(pdfBase64) {
-                window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
+        // ⏱️ THE TIMING FIX: Give the browser 500ms to actually draw the clone!
+        setTimeout(() => {
 
-                // 🧹 CLEANUP: Destroy the ghost!
-                document.body.removeChild(clone);
-            });
-        }
-        // 2. Desktop Browser Logic
-        else {
-            // Let's use html2pdf for desktop too, so the PDF looks identical everywhere
-            html2pdf().set(opt).from(clone).save().then(function() {
+            // 1. Android App Logic
+            if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
+                html2pdf().set(opt).from(clone).outputPdf('datauristring').then(function(pdfBase64) {
+                    window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
+                    // 🧹 Destroy the ghost
+                    document.body.removeChild(clone);
+                }).catch(err => {
+                    console.error("PDF Generation Error: ", err);
+                    document.body.removeChild(clone); // Clean up even if it fails
+                });
+            }
+            // 2. Desktop Browser Logic
+            else {
+                html2pdf().set(opt).from(clone).save().then(function() {
+                    // 🧹 Destroy the ghost
+                    document.body.removeChild(clone);
+                });
+            }
 
-                // 🧹 CLEANUP: Destroy the ghost!
-                document.body.removeChild(clone);
-            });
-        }
+        }, 500); // Wait half a second before taking the picture
     },
 
     renderSemesterArchives() {
