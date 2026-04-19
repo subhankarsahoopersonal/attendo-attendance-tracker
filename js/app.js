@@ -1030,6 +1030,9 @@ const App = {
             .map(tag => tag.outerHTML)
             .join('\n');
 
+        // 📍 THE FIX: Give the iframe a GPS so it can find your CSS files!
+        const baseUrl = `<base href="${window.location.origin}${window.location.pathname}">`;
+
         // 3. Build a perfect, isolated copy of the report inside the Clean Room
         const iframeDoc = iframe.contentWindow.document;
         iframeDoc.open();
@@ -1037,6 +1040,7 @@ const App = {
             <!DOCTYPE html>
             <html>
             <head>
+                ${baseUrl}
                 ${styles}
                 <style>
                     /* OVERRIDE EVERYTHING: Force the background to be white and visible */
@@ -1049,14 +1053,14 @@ const App = {
                     }
                 </style>
             </head>
-            <body>
+            <body class="${document.body.className}">
                 ${originalElement.outerHTML}
             </body>
             </html>
         `);
         iframeDoc.close();
 
-        // 4. ⏱️ Wait 1 full second for the Clean Room to load the fonts and CSS
+        // 4. ⏱️ Wait 1.5 seconds. (We added 500ms so the CSS files have time to download!)
         setTimeout(() => {
             // Target the pristine copy inside the iframe
             const targetElement = iframeDoc.getElementById('report-container');
@@ -1085,7 +1089,7 @@ const App = {
                     document.body.removeChild(iframe); // 🧹 Destroy the Clean Room
                 });
             }
-        }, 1000); // The 1000ms delay is crucial to let the iframe render
+        }, 1500); // The 1500ms delay is crucial to let the iframe render and styles fetch
     },
 
     renderSemesterArchives() {
