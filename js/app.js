@@ -989,130 +989,17 @@ const App = {
         URL.revokeObjectURL(url);
     },
 
-    async downloadAttendancePDF(archiveData) {
-        const data = archiveData || {
-            subjects: StorageManager.getSubjects(),
-            history: StorageManager.getHistory(),
-            extraClasses: StorageManager.getExtraClasses(),
-            settings: StorageManager.getSettings(),
-            name: 'Current Semester'
-        };
-
-        if (data.subjects.length === 0) {
-            this.showCustomAlert('No attendance data to export yet.');
-            return;
+    downloadAttendancePDF() {
+        // 1. Are we in the Android App?
+        if (window.AttendoApp && window.AttendoApp.generateNativePdf) {
+            // Trigger the native Android Kotlin printer
+            window.AttendoApp.generateNativePdf();
         }
-
-        const html = StorageManager.generateAttendancePDFHtml(data);
-
-        // 1. Grab the REAL element directly from your screen (Inject for dynamic creation)
-        const element = document.createElement('div');
-        element.id = 'report-container';
-        element.style.width = '800px'; // Force a solid desktop layout width for the PDF
-        
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) {
-            element.innerHTML = bodyMatch[1];
-        } else {
-            element.innerHTML = html;
+        // 2. Are we on a Desktop Browser?
+        else {
+            // Trigger the normal browser print
+            window.print();
         }
-        document.body.appendChild(element);
-
-        if (!element) return;
-
-        // Give the user a heads up since this takes a second
-        if (window.AttendoApp && window.AttendoApp.showToast) {
-            window.AttendoApp.showToast("Rendering beautiful report... please wait.");
-        }
-
-        // 🎨 1. THE STYLING FIX: Force-load all external CSS directly into the HTML
-        // This guarantees the camera can see your purple banner and flexbox layouts!
-        const links = document.querySelectorAll('link[rel="stylesheet"]');
-        const injectedStyles = [];
-        for (let link of links) {
-            try {
-                const response = await fetch(link.href);
-                const cssText = await response.text();
-                const style = document.createElement('style');
-                style.innerHTML = cssText;
-                document.head.appendChild(style);
-                injectedStyles.push(style);
-            } catch (e) {
-                console.warn("Could not inline CSS: ", e);
-            }
-        }
-
-        // 2. Hide modals so they don't block the camera
-        const modals = document.querySelectorAll('.modal, .bottom-sheet, .overlay, [id*="modal"]');
-        modals.forEach(m => m.style.opacity = '0');
-
-        // 📏 3. THE BLANK PAGE FIX: Unroll the scroll bars!
-        const parentsToRestore = [];
-        let parent = element.parentNode;
-        while (parent && parent !== document) {
-            parentsToRestore.push({ el: parent, overflow: parent.style.overflow, height: parent.style.height });
-            parent.style.overflow = 'visible';
-            parent.style.height = 'auto';
-            parent = parent.parentNode;
-        }
-
-        const origBodyOverflow = document.body.style.overflow;
-        const origHtmlOverflow = document.documentElement.style.overflow;
-        document.body.style.overflow = 'visible';
-        document.documentElement.style.overflow = 'visible';
-
-        // Scroll to the very top to protect the purple header
-        const origScroll = window.scrollY;
-        window.scrollTo(0, 0);
-
-        // 📸 4. CAPTURE SETTINGS
-        const opt = {
-            margin: 0.2,
-            filename: 'AttenDO_Semester_Report.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 1.5, // 1.5 is the sweet spot: Keeps Android memory from crashing, but text stays crisp!
-                useCORS: true,
-                scrollY: 0
-                // Notice we removed the hardcoded white background so your purple banner can shine!
-            },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
-
-        // Helper to put your app perfectly back to normal after the picture
-        function restoreEverything() {
-            modals.forEach(m => m.style.opacity = '1');
-            parentsToRestore.forEach(p => {
-                p.el.style.overflow = p.overflow;
-                p.el.style.height = p.height;
-            });
-            document.body.style.overflow = origBodyOverflow;
-            document.documentElement.style.overflow = origHtmlOverflow;
-            window.scrollTo(0, origScroll);
-            
-            // Clean up dynamically created nodes
-            injectedStyles.forEach(s => {
-                if (s && s.parentNode) s.parentNode.removeChild(s);
-            });
-            if (element && element.parentNode) {
-                element.parentNode.removeChild(element);
-            }
-        }
-
-        // ⏱️ Wait 500ms for the injected CSS to fully apply, then snap!
-        setTimeout(() => {
-            if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
-                html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
-                    window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-                    restoreEverything();
-                }).catch(err => {
-                    console.error("PDF Error: ", err);
-                    restoreEverything();
-                });
-            } else {
-                html2pdf().set(opt).from(element).save().then(restoreEverything);
-            }
-        }, 500);
     },
 
     renderSemesterArchives() {
