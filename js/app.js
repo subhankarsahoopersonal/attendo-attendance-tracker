@@ -1005,12 +1005,13 @@ const App = {
 
         const html = StorageManager.generateAttendancePDFHtml(data);
 
-        // 1. Grab the REAL element directly from your screen
+        // 1. Grab the REAL element directly from your screen (Inject for dynamic creation)
         const element = document.createElement('div');
         element.id = 'report-container';
         element.style.position = 'absolute';
         element.style.left = '-9999px';
         element.style.top = '0';
+        element.style.width = '800px'; // Still forcing a nice desktop width
         
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if (bodyMatch) {
@@ -1020,72 +1021,61 @@ const App = {
         }
         document.body.appendChild(element);
 
+        if (!element) {
+            console.error("Could not find the report-container!");
+            return;
+        }
+
         // 2. Hide the dark modal menu momentarily so it doesn't block the camera!
         // (We use opacity so it doesn't break your app's layout, it just becomes invisible)
         const allModals = document.querySelectorAll('.modal, .bottom-sheet, .overlay, [id*="modal"]');
         allModals.forEach(m => m.style.opacity = '0'); 
 
-        // 3. Scroll to the absolute top of the page so the Purple Header doesn't get cut off!
+        // 3. Scroll to the very top so the purple header isn't cut off
         const originalScroll = window.scrollY;
         window.scrollTo(0, 0);
 
-        // 4. The Magic Settings
+        // 4. The Hardware-Safe Settings
         const opt = {
-            margin:       0.2,
+            margin:       0.3, // Add a little breathing room around the edges
             filename:     'AttenDO_Semester_Report.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
+            image:        { type: 'jpeg', quality: 0.95 },
             html2canvas:  { 
-                scale: 2, 
+                scale: 1, // 🛑 THE CRITICAL FIX: Prevents the Android GPU memory crash!
                 useCORS: true, 
                 scrollY: 0,
-                windowWidth: 800, // Force the camera to use a wide, desktop lens
-                onclone: function(clonedDoc) {
-                    // 🪄 THE MAGIC HOOK: This edits the DOM *inside* the camera before it snaps!
-                    const clonedReport = clonedDoc.getElementById('report-container');
-                    if (!clonedReport) return;
-                    
-                    // Force it to be wide and visible inside the clone
-                    clonedReport.style.display = 'block';
-                    clonedReport.style.width = '800px';
-                    clonedReport.style.position = 'static';
-                    clonedReport.style.left = '0';
-
-                    // Fix the "Cut Off Header" bug by forcing all parent wrappers to expand
-                    let parent = clonedReport.parentNode;
-                    while (parent && parent !== clonedDoc.body) {
-                        parent.style.overflow = 'visible';
-                        parent.style.height = 'auto';
-                        parent.style.position = 'static';
-                        parent = parent.parentNode;
-                    }
-                }
+                backgroundColor: '#ffffff'
             }, 
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            // Tell jsPDF to automatically split the report across multiple pages if it's too tall!
+            pagebreak:    { mode: 'css', before: '#next-page-element' },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
-        // Helper function to restore the screen after the picture is taken
+        // Helper to put the screen back to normal
         function restoreScreen() {
-            allModals.forEach(m => m.style.opacity = '1'); // Bring the modal back
-            window.scrollTo(0, originalScroll);            // Scroll back to where the user was
+            allModals.forEach(m => m.style.opacity = '1'); 
+            window.scrollTo(0, originalScroll);            
             if (element && element.parentNode) {
                 element.parentNode.removeChild(element);
             }
         }
 
-        // 5. Generate!
-        if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
-            html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
-                window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-                restoreScreen(); // Clean up
-            }).catch(err => {
-                console.error("PDF Error: ", err);
-                restoreScreen(); // Clean up even if it fails
-            });
-        } else {
-            html2pdf().set(opt).from(element).save().then(() => {
-                restoreScreen();
-            });
-        }
+        // 5. Generate! (Adding a tiny 200ms delay just to let the scroll settle)
+        setTimeout(() => {
+            if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
+                html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
+                    window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
+                    restoreScreen();
+                }).catch(err => {
+                    console.error("PDF Error: ", err);
+                    restoreScreen();
+                });
+            } else {
+                html2pdf().set(opt).from(element).save().then(() => {
+                    restoreScreen();
+                });
+            }
+        }, 200);
     },
 
     renderSemesterArchives() {
