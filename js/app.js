@@ -1004,7 +1004,7 @@ const App = {
         }
 
         if (window.AttendoApp && window.AttendoApp.showToast) {
-            window.AttendoApp.showToast("Preparing Native Document...");
+            window.AttendoApp.showToast("Building your Report...");
         }
 
         // 🎯 CREATE THE DYNAMIC TITLE:
