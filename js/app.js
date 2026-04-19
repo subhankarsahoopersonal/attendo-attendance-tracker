@@ -989,7 +989,7 @@ const App = {
         URL.revokeObjectURL(url);
     },
 
-    async downloadAttendancePDF(archiveData) {
+    downloadAttendancePDF(archiveData) {
         const data = archiveData || {
             subjects: StorageManager.getSubjects(),
             history: StorageManager.getHistory(),
@@ -1005,119 +1005,113 @@ const App = {
 
         const html = StorageManager.generateAttendancePDFHtml(data);
 
-        // 1. Grab the REAL element directly from your screen (Inject for dynamic creation)
-        const originalElement = document.createElement('div');
-        originalElement.id = 'report-container';
-        originalElement.style.position = 'absolute';
-        originalElement.style.left = '-9999px';
-        originalElement.style.top = '0';
-        originalElement.style.width = '800px'; 
-        
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) {
-            originalElement.innerHTML = bodyMatch[1];
-        } else {
-            originalElement.innerHTML = html;
-        }
-        document.body.appendChild(originalElement);
-
-        if (!originalElement) {
-            console.error("Could not find the report-container!");
-            return;
-        }
-
-        // Optional: Tell the user it's working so they don't spam the button
+        // Optional: Tell the user it's working
         if (window.AttendoApp && window.AttendoApp.showToast) {
             window.AttendoApp.showToast("Building Report... Please wait.");
         }
 
-        // 🚨 1. BRUTE FORCE CSS EXTRACTION
-        let rawCSS = '';
+        // 1. Grab the REAL element directly from your screen (Inject for dynamic creation)
+        const element = document.createElement('div');
+        element.id = 'report-container';
+        element.style.width = '800px'; // Force a solid desktop layout width for the PDF
         
-        // Grab any internal styles
-        document.querySelectorAll('style').forEach(tag => {
-            rawCSS += tag.innerHTML + '\n';
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        if (bodyMatch) {
+            element.innerHTML = bodyMatch[1];
+        } else {
+            element.innerHTML = html;
+        }
+        document.body.appendChild(element);
+
+        if (!element) return;
+
+        // 1. Completely hide modals from the rendering engine (using display: none)
+        const modals = document.querySelectorAll('.modal, .bottom-sheet, .overlay, [id*="modal"]');
+        modals.forEach(m => {
+            // Store original display to restore later
+            m.setAttribute('data-orig-display', m.style.display || '');
+            m.style.display = 'none';
         });
 
-        // Force-download external CSS files (This completely bypasses the Android security block)
-        const links = document.querySelectorAll('link[rel="stylesheet"]');
-        for (let link of links) {
-            try {
-                const response = await fetch(link.href);
-                rawCSS += await response.text() + '\n';
-            } catch (e) {
-                console.warn("Could not fetch CSS from: ", link.href);
+        // 2. THE ROOT CAUSE FIX: Unroll the scrollable containers
+        // We climb up the DOM tree and forcefully disable 'overflow' on every parent
+        const parentsToRestore = [];
+        let parent = element.parentNode;
+        
+        while (parent && parent !== document) {
+            parentsToRestore.push({
+                el: parent,
+                overflow: parent.style.overflow,
+                height: parent.style.height
+            });
+            // Force the container to expand flat like a printed sheet of paper
+            parent.style.overflow = 'visible';
+            parent.style.height = 'auto';
+            parent = parent.parentNode;
+        }
+
+        // Explicitly unroll the body and html tags
+        const origBodyOverflow = document.body.style.overflow;
+        const origHtmlOverflow = document.documentElement.style.overflow;
+        document.body.style.overflow = 'visible';
+        document.documentElement.style.overflow = 'visible';
+
+        // 3. Guarantee a solid white background (transparent backgrounds render black/blank)
+        const origBg = element.style.backgroundColor;
+        element.style.backgroundColor = '#ffffff';
+
+        // 4. Scroll to the absolute top of the newly flattened page
+        const origScroll = window.scrollY;
+        window.scrollTo(0, 0);
+
+        const opt = {
+            margin: 0.2,
+            filename: 'AttenDO_Semester_Report.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2, 
+                useCORS: true,
+                scrollY: 0,
+                backgroundColor: '#ffffff'
+            },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Helper to put your app perfectly back to normal after the picture
+        function restoreEverything() {
+            modals.forEach(m => {
+                m.style.display = m.getAttribute('data-orig-display') || '';
+                m.removeAttribute('data-orig-display');
+            });
+            parentsToRestore.forEach(p => {
+                p.el.style.overflow = p.overflow;
+                p.el.style.height = p.height;
+            });
+            document.body.style.overflow = origBodyOverflow;
+            document.documentElement.style.overflow = origHtmlOverflow;
+            element.style.backgroundColor = origBg;
+            window.scrollTo(0, origScroll);
+            
+            // Clean up our dynamically injected report container
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
             }
         }
 
-        // 🏗️ 2. BUILD THE ISOLATED IFRAME
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.right = '-2000px'; 
-        iframe.style.bottom = '-2000px';
-        iframe.style.width = '800px';   // Force desktop layout
-        iframe.style.height = '1500px'; 
-        document.body.appendChild(iframe);
-
-        // 💉 3. INJECT THE RAW CSS DIRECTLY
-        const iframeDoc = iframe.contentWindow.document;
-        iframeDoc.open();
-        iframeDoc.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    /* Paste the raw downloaded CSS here */
-                    ${rawCSS}
-                    
-                    /* Guarantee the background is white and visible */
-                    body { background: white !important; padding: 20px; margin: 0; }
-                    #report-container { 
-                        display: block !important; 
-                        opacity: 1 !important; 
-                        visibility: visible !important; 
-                    }
-                </style>
-            </head>
-            <body class="${document.body.className}">
-                ${originalElement.outerHTML}
-            </body>
-            </html>
-        `);
-        iframeDoc.close();
-
-        // Cleanup our dynamically injected original element since it's now in the iframe
-        document.body.removeChild(originalElement);
-
-        // 📸 4. SNAP THE PICTURE (Wait 500ms for fonts to load)
+        // Give the browser 300ms to visually unroll the page, then capture
         setTimeout(() => {
-            const targetElement = iframeDoc.getElementById('report-container');
-
-            const opt = {
-                margin:       0.2,
-                filename:     'AttenDO_Semester_Report.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 1.5, // 1.5 is the sweet spot: Crisp text, but won't crash the phone's memory
-                    useCORS: true 
-                }, 
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-
             if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
-                html2pdf().set(opt).from(targetElement).outputPdf('datauristring').then(function(pdfBase64) {
+                html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
                     window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-                    document.body.removeChild(iframe); // Clean up
+                    restoreEverything();
                 }).catch(err => {
                     console.error("PDF Error: ", err);
-                    document.body.removeChild(iframe);
+                    restoreEverything();
                 });
             } else {
-                html2pdf().set(opt).from(targetElement).save().then(() => {
-                    document.body.removeChild(iframe);
-                });
+                html2pdf().set(opt).from(element).save().then(restoreEverything);
             }
-        }, 500); 
+        }, 300);
     },
 
     renderSemesterArchives() {
