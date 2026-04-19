@@ -989,16 +989,76 @@ const App = {
         URL.revokeObjectURL(url);
     },
 
-    downloadAttendancePDF() {
-        // 1. Are we in the Android App?
-        if (window.AttendoApp && window.AttendoApp.generateNativePdf) {
-            // Trigger the native Android Kotlin printer
-            window.AttendoApp.generateNativePdf();
+    downloadAttendancePDF(archiveData) {
+        const data = archiveData || {
+            subjects: StorageManager.getSubjects(),
+            history: StorageManager.getHistory(),
+            extraClasses: StorageManager.getExtraClasses(),
+            settings: StorageManager.getSettings(),
+            name: 'Current Semester'
+        };
+
+        if (data.subjects.length === 0) {
+            this.showCustomAlert('No attendance data to export yet.');
+            return;
         }
-        // 2. Are we on a Desktop Browser?
-        else {
-            // Trigger the normal browser print
+
+        const html = StorageManager.generateAttendancePDFHtml(data);
+        
+        // Create the report container dynamically since it's not actually drawn on the screen yet
+        const originalReport = document.createElement('div');
+        originalReport.id = 'report-container';
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        if (bodyMatch) {
+            originalReport.innerHTML = bodyMatch[1];
+        } else {
+            originalReport.innerHTML = html;
+        }
+
+        if (!originalReport) return;
+
+        // 1. Save the state of the app and hide EVERYTHING currently on the screen
+        const children = Array.from(document.body.children);
+        const visibilityStates = children.map(child => {
+            const display = child.style.display;
+            child.style.display = 'none'; // Make the settings page invisible
+            return { element: child, display: display };
+        });
+
+        // 2. Put the isolated report on a blank white canvas
+        originalReport.style.display = 'block';
+        originalReport.style.width = '100%';
+        originalReport.style.backgroundColor = '#ffffff';
+        
+        const originalBodyBg = document.body.style.backgroundColor;
+        document.body.style.backgroundColor = '#ffffff';
+
+        // Put the isolated report on the screen
+        document.body.appendChild(originalReport);
+
+        // 3. Trigger the Native Android Printer!
+        if (window.AttendoApp && window.AttendoApp.generateNativePdf) {
+            window.AttendoApp.generateNativePdf();
+            
+            // ⏱️ Wait 2 seconds for Android to take the snapshot, then clean up
+            setTimeout(cleanup, 2000);
+        } else {
+            // Desktop behavior
             window.print();
+            cleanup();
+        }
+
+        // 4. The Cleanup Crew: Puts your app back exactly how it was
+        function cleanup() {
+            if (originalReport && originalReport.parentNode) {
+                document.body.removeChild(originalReport); // Destroy the temporary report
+            }
+            document.body.style.backgroundColor = originalBodyBg; // Restore background
+            
+            // Bring back the settings page and original app
+            visibilityStates.forEach(state => {
+                state.element.style.display = state.display;
+            });
         }
     },
 
