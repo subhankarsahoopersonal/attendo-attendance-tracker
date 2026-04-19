@@ -1015,28 +1015,31 @@ const App = {
             originalElement.innerHTML = bodyMatch[1];
         }
 
-        // Safety check just in case
         if (!originalElement) {
             console.error("Could not find the report-container!");
             return;
         }
 
-        // 👻 THE GHOST CLONE
+        // 👻 THE CLONE
         const clone = originalElement.cloneNode(true);
 
-        // Instead of pushing it 10,000px away (which mobile browsers sometimes refuse to paint),
-        // we put it right at the top but hide it BEHIND your app using z-index.
+        // 🚀 THE GPU OVERRIDE: We bring it to the absolute front!
+        // The user will see this flash on screen for 500ms, which forces Android to paint the pixels.
         clone.style.position = 'absolute';
         clone.style.top = '0';
         clone.style.left = '0';
         clone.style.width = '800px';
         clone.style.height = 'auto';
-        clone.style.zIndex = '-9999'; // Hides it behind everything else
-        clone.style.display = 'block';
+        clone.style.zIndex = '999999'; // ON TOP of the modal and everything else!
         clone.style.backgroundColor = '#ffffff';
 
-        // Add it to the page
+        // This specific line forces hardware acceleration
+        clone.style.transform = 'translateZ(0)';
+
         document.body.appendChild(clone);
+
+        // Scroll to the very top to prevent the camera from cutting off the top half
+        window.scrollTo(0, 0);
 
         const opt = {
             margin:       0.5,
@@ -1046,34 +1049,34 @@ const App = {
                 scale: 2,
                 useCORS: true,
                 scrollY: 0,
-                windowWidth: 800 // Forces the camera to see the full 800px width
+                windowWidth: 800
             },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
-        // ⏱️ THE TIMING FIX: Give the browser 500ms to actually draw the clone!
+        // ⏱️ Wait 500ms for the GPU to draw the visible clone
         setTimeout(() => {
 
             // 1. Android App Logic
             if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
                 html2pdf().set(opt).from(clone).outputPdf('datauristring').then(function(pdfBase64) {
                     window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-                    // 🧹 Destroy the ghost
+                    // 🧹 Destroy the clone so the user goes back to the app
                     document.body.removeChild(clone);
                 }).catch(err => {
-                    console.error("PDF Generation Error: ", err);
-                    document.body.removeChild(clone); // Clean up even if it fails
+                    console.error("PDF Error: ", err);
+                    document.body.removeChild(clone);
                 });
             }
             // 2. Desktop Browser Logic
             else {
                 html2pdf().set(opt).from(clone).save().then(function() {
-                    // 🧹 Destroy the ghost
+                    // 🧹 Destroy the clone
                     document.body.removeChild(clone);
                 });
             }
 
-        }, 500); // Wait half a second before taking the picture
+        }, 500);
     },
 
     renderSemesterArchives() {
