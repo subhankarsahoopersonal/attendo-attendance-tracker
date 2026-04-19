@@ -1007,25 +1007,40 @@ const App = {
             window.AttendoApp.showToast("Preparing Native Document...");
         }
 
+        // 🎯 CREATE THE DYNAMIC TITLE:
+        // This will output "AttenDO - Current Semester Report" OR "AttenDO - 1st Semester Report"
+        const customTitle = `AttenDO - ${data.name} Report`;
+
         // 1 & 2. Our StorageManager already packages everything into a clean, isolated, styled HTML string!
         const fullHtml = StorageManager.generateAttendancePDFHtml(data);
 
         // 3. Send it to the Kotlin Background Printer!
         if (window.AttendoApp && window.AttendoApp.printHtml) {
-            window.AttendoApp.printHtml(fullHtml);
+
+            // 👉 PASSED TO KOTLIN: Send BOTH the HTML and the dynamic title
+            window.AttendoApp.printHtml(fullHtml, customTitle);
+
         } else {
             // Fallback for Desktop Users
             const printWindow = window.open('', '_blank');
             if (printWindow) {
                 printWindow.document.write(fullHtml);
                 printWindow.document.close();
-                printWindow.onload = function() {
+                printWindow.onload = function () {
+
+                    // 👉 DESKTOP FIX: Force the PDF name by setting the hidden window's title
+                    printWindow.document.title = customTitle;
+
                     setTimeout(() => {
                         printWindow.print();
                     }, 300);
                 };
             } else {
-                window.print(); // Ultimate fallback
+                // Ultimate fallback if popup windows are blocked
+                const originalTitle = document.title;
+                document.title = customTitle;
+                window.print();
+                document.title = originalTitle;
             }
         }
     },
