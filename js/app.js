@@ -1005,78 +1005,85 @@ const App = {
 
         const html = StorageManager.generateAttendancePDFHtml(data);
 
-        // Create an off-screen container to render the report HTML
-        const originalElement = document.createElement('div');
-        originalElement.id = 'report-container';
-        originalElement.innerHTML = html;
-        // Extract only the body content if it's a full HTML document
+        // Fetch the report container or create one if it doesn't exist
+        // Note: For this to work best as written, the HTML should be inserted into a div.
+        const element = document.createElement('div');
+        element.id = 'report-container';
+        element.style.display = 'none'; // Hide it from the user
+        element.innerHTML = html;
+
+        // Extract only the body content if it's a full HTML document snippet
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if (bodyMatch) {
-            originalElement.innerHTML = bodyMatch[1];
+            element.innerHTML = bodyMatch[1];
         }
 
-        if (!originalElement) {
+        document.body.appendChild(element);
+
+        // We need to briefly make it visible to html2canvas, but push it off-screen 
+        // to avoid visual disruption for the user.
+        element.style.position = 'absolute';
+        element.style.left = '-9999px';
+        element.style.top = '0px';
+        element.style.display = 'block';
+
+        if (!element) {
             console.error("Could not find the report-container!");
             return;
         }
 
-        // 👻 THE CLONE
-        const clone = originalElement.cloneNode(true);
-
-        // 🚀 THE GPU OVERRIDE: We bring it to the absolute front!
-        // The user will see this flash on screen for 500ms, which forces Android to paint the pixels.
-        clone.style.position = 'absolute';
-        clone.style.top = '0';
-        clone.style.left = '0';
-        clone.style.width = '800px';
-        clone.style.height = 'auto';
-        clone.style.zIndex = '999999'; // ON TOP of the modal and everything else!
-        clone.style.backgroundColor = '#ffffff';
-
-        // This specific line forces hardware acceleration
-        clone.style.transform = 'translateZ(0)';
-
-        document.body.appendChild(clone);
-
-        // Scroll to the very top to prevent the camera from cutting off the top half
-        window.scrollTo(0, 0);
-
+        // THE SAFE SETTINGS
         const opt = {
-            margin:       0.5,
+            margin:       0.2,
             filename:     'AttenDO_Semester_Report.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
+            image:        { type: 'jpeg', quality: 0.95 },
             html2canvas:  {
-                scale: 2,
+                scale: 1,               // 🛑 CRITICAL: Stops the mobile GPU from crashing!
                 useCORS: true,
                 scrollY: 0,
-                windowWidth: 800
+                backgroundColor: '#ffffff'
             },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
-        // ⏱️ Wait 500ms for the GPU to draw the visible clone
-        setTimeout(() => {
+        // 1. Android App Logic
+        if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
 
-            // 1. Android App Logic
-            if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
-                html2pdf().set(opt).from(clone).outputPdf('datauristring').then(function(pdfBase64) {
-                    window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-                    // 🧹 Destroy the clone so the user goes back to the app
-                    document.body.removeChild(clone);
-                }).catch(err => {
-                    console.error("PDF Error: ", err);
-                    document.body.removeChild(clone);
-                });
-            }
-            // 2. Desktop Browser Logic
-            else {
-                html2pdf().set(opt).from(clone).save().then(function() {
-                    // 🧹 Destroy the clone
-                    document.body.removeChild(clone);
-                });
-            }
+            // Let's use the REAL element this time. No clones. No hiding.
+            html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
 
-        }, 500);
+                // Send to Kotlin
+                window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
+
+                // Cleanup
+                document.body.removeChild(element);
+
+            }).catch(err => {
+                console.error("PDF Generation Error: ", err);
+                document.body.removeChild(element);
+            });
+
+        }
+        // 2. Desktop Browser Logic
+        else {
+            // Revert back to the simple print for desktop because it handles the 
+            // layout much better than the offscreen div approach when using html2pdf directly.
+            // When falling back to window.print, we don't use the offscreen div we just made.
+            document.body.removeChild(element);
+            
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                this.showCustomAlert('Please allow popups to generate the PDF report.');
+                return;
+            }
+            printWindow.document.write(html);
+            printWindow.document.close();
+
+            // Auto-trigger print dialog after content loads
+            printWindow.onload = () => {
+                setTimeout(() => printWindow.print(), 300);
+            };
+        }
     },
 
     renderSemesterArchives() {
