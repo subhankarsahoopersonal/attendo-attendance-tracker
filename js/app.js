@@ -1026,29 +1026,27 @@ const App = {
             return;
         }
 
-        // 2. Hide the dark modal menu momentarily so it doesn't block the camera!
-        // (We use opacity so it doesn't break your app's layout, it just becomes invisible)
+        // 1. Hide the dark modal so it doesn't block the view
         const allModals = document.querySelectorAll('.modal, .bottom-sheet, .overlay, [id*="modal"]');
         allModals.forEach(m => m.style.opacity = '0'); 
 
-        // 3. Scroll to the very top so the purple header isn't cut off
+        // 2. Scroll to the very top to protect the Purple Header
         const originalScroll = window.scrollY;
         window.scrollTo(0, 0);
 
-        // 4. The Hardware-Safe Settings
+        // 3. The SVG Native Rendering Settings
         const opt = {
-            margin:       0.3, // Add a little breathing room around the edges
+            margin:       0.2,
             filename:     'AttenDO_Semester_Report.pdf',
-            image:        { type: 'jpeg', quality: 0.95 },
+            image:        { type: 'jpeg', quality: 1.0 },
             html2canvas:  { 
-                scale: 1, // 🛑 THE CRITICAL FIX: Prevents the Android GPU memory crash!
+                scale: 2,               // Crisp text is back!
                 useCORS: true, 
                 scrollY: 0,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                foreignObjectRendering: true // 🪄 THE MAGIC BULLET: Bypasses CSS rendering bugs!
             }, 
-            // Tell jsPDF to automatically split the report across multiple pages if it's too tall!
-            pagebreak:    { mode: 'css', before: '#next-page-element' },
-            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
         // Helper to put the screen back to normal
@@ -1060,22 +1058,24 @@ const App = {
             }
         }
 
-        // 5. Generate! (Adding a tiny 200ms delay just to let the scroll settle)
-        setTimeout(() => {
-            if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
-                html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
-                    window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-                    restoreScreen();
-                }).catch(err => {
-                    console.error("PDF Error: ", err);
-                    restoreScreen();
-                });
-            } else {
-                html2pdf().set(opt).from(element).save().then(() => {
-                    restoreScreen();
-                });
-            }
-        }, 200);
+        // 4. Give the browser 1 frame to hide the modals, then capture!
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
+                    html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
+                        window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
+                        restoreScreen();
+                    }).catch(err => {
+                        console.error("PDF Error: ", err);
+                        restoreScreen();
+                    });
+                } else {
+                    html2pdf().set(opt).from(element).save().then(() => {
+                        restoreScreen();
+                    });
+                }
+            }, 100);
+        });
     },
 
     renderSemesterArchives() {
