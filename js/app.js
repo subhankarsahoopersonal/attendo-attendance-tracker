@@ -1006,46 +1006,70 @@ const App = {
         const html = StorageManager.generateAttendancePDFHtml(data);
 
         // Create an off-screen container to render the report HTML
-        const element = document.createElement('div');
-        element.innerHTML = html;
+        const originalElement = document.createElement('div');
+        originalElement.id = 'report-container';
+        originalElement.innerHTML = html;
         // Extract only the body content if it's a full HTML document
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if (bodyMatch) {
-            element.innerHTML = bodyMatch[1];
+            originalElement.innerHTML = bodyMatch[1];
         }
-        element.style.position = 'absolute';
-        element.style.left = '-9999px';
-        element.style.top = '0';
-        document.body.appendChild(element);
+        originalElement.style.position = 'absolute';
+        originalElement.style.left = '-9999px';
+        originalElement.style.top = '0';
+        document.body.appendChild(originalElement);
 
-        // THE UPGRADED SETTINGS: Fixing mobile blank pages
+        // 👻 THE GHOST CLONE: We create a duplicate of the report
+        const clone = originalElement.cloneNode(true);
+
+        // Force the clone to look like a desktop screen (800px wide)
+        // We push it 10,000 pixels off the screen so the user never sees it happening!
+        clone.style.position = 'fixed';
+        clone.style.left = '-10000px';
+        clone.style.top = '0px';
+        clone.style.width = '800px'; // Forces desktop CSS rules
+        clone.style.height = 'auto';
+        clone.style.display = 'block'; // Overrides any mobile 'display: none'
+        clone.style.visibility = 'visible';
+        clone.style.backgroundColor = '#ffffff';
+
+        // Add the ghost to the actual webpage (required for the camera to see it)
+        document.body.appendChild(clone);
+
+        // Remove the original off-screen element
+        document.body.removeChild(originalElement);
+
         const opt = {
             margin:       0.5,
             filename:     'AttenDO_Semester_Report.pdf',
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  {
                 scale: 2,
-                useCORS: true,           // Fixes blank images if your logo is hosted elsewhere
-                scrollY: 0,              // Fixes the scroll-offset bug
-                backgroundColor: '#fff'  // Forces a solid white background!
+                useCORS: true,
+                scrollY: 0,
+                backgroundColor: '#ffffff'
             },
             jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
-        // 1. Are we inside the Android App?
+        // 1. Android App Logic
         if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
-            html2pdf().set(opt).from(element).outputPdf('datauristring').then(function (pdfBase64) {
+            // Notice we are passing the CLONE to the camera, not the original element!
+            html2pdf().set(opt).from(clone).outputPdf('datauristring').then(function(pdfBase64) {
                 window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-                document.body.removeChild(element);
-            }).catch(function (err) {
-                console.error('PDF generation failed:', err);
-                document.body.removeChild(element);
+
+                // 🧹 CLEANUP: Destroy the ghost!
+                document.body.removeChild(clone);
             });
         }
-        // 2. Desktop Browser
+        // 2. Desktop Browser Logic
         else {
-            document.body.removeChild(element);
-            window.print();
+            // Let's use html2pdf for desktop too, so the PDF looks identical everywhere
+            html2pdf().set(opt).from(clone).save().then(function() {
+
+                // 🧹 CLEANUP: Destroy the ghost!
+                document.body.removeChild(clone);
+            });
         }
     },
 
