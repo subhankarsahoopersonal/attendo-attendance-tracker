@@ -1005,19 +1005,55 @@ const App = {
 
         const html = StorageManager.generateAttendancePDFHtml(data);
 
-        // Open in a new window for print-to-PDF
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            this.showCustomAlert('Please allow popups to generate the PDF report.');
-            return;
-        }
-        printWindow.document.write(html);
-        printWindow.document.close();
+        // 1. Are we inside the Android App?
+        if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
+            // Create an off-screen container to render the report HTML
+            const element = document.createElement('div');
+            element.innerHTML = html;
+            // Extract only the body content if it's a full HTML document
+            const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            if (bodyMatch) {
+                element.innerHTML = bodyMatch[1];
+            }
+            element.style.position = 'absolute';
+            element.style.left = '-9999px';
+            element.style.top = '0';
+            document.body.appendChild(element);
 
-        // Auto-trigger print dialog after content loads
-        printWindow.onload = () => {
-            setTimeout(() => printWindow.print(), 300);
-        };
+            const opt = {
+                margin: 0.5,
+                filename: 'AttenDO_Semester_Report.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Instead of .save(), use outputPdf() to turn it into raw data
+            html2pdf().set(opt).from(element).outputPdf('datauristring').then(function (pdfBase64) {
+                // Send the raw PDF data over the bridge to Kotlin!
+                window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
+                // Clean up the off-screen element
+                document.body.removeChild(element);
+            }).catch(function (err) {
+                console.error('PDF generation failed:', err);
+                document.body.removeChild(element);
+            });
+        }
+        // 2. We are on a normal laptop/desktop browser!
+        else {
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                this.showCustomAlert('Please allow popups to generate the PDF report.');
+                return;
+            }
+            printWindow.document.write(html);
+            printWindow.document.close();
+
+            // Auto-trigger print dialog after content loads
+            printWindow.onload = () => {
+                setTimeout(() => printWindow.print(), 300);
+            };
+        }
     },
 
     renderSemesterArchives() {
