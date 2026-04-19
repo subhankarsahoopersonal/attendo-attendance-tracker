@@ -989,7 +989,7 @@ const App = {
         URL.revokeObjectURL(url);
     },
 
-    downloadAttendancePDF(archiveData) {
+    async downloadAttendancePDF(archiveData) {
         const data = archiveData || {
             subjects: StorageManager.getSubjects(),
             history: StorageManager.getHistory(),
@@ -1003,62 +1003,30 @@ const App = {
             return;
         }
 
-        const html = StorageManager.generateAttendancePDFHtml(data);
-        
-        // Create the report container dynamically since it's not actually drawn on the screen yet
-        const originalReport = document.createElement('div');
-        originalReport.id = 'report-container';
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) {
-            originalReport.innerHTML = bodyMatch[1];
-        } else {
-            originalReport.innerHTML = html;
+        if (window.AttendoApp && window.AttendoApp.showToast) {
+            window.AttendoApp.showToast("Preparing Native Document...");
         }
 
-        if (!originalReport) return;
+        // 1 & 2. Our StorageManager already packages everything into a clean, isolated, styled HTML string!
+        const fullHtml = StorageManager.generateAttendancePDFHtml(data);
 
-        // 1. Save the state of the app and hide EVERYTHING currently on the screen
-        const children = Array.from(document.body.children);
-        const visibilityStates = children.map(child => {
-            const display = child.style.display;
-            child.style.display = 'none'; // Make the settings page invisible
-            return { element: child, display: display };
-        });
-
-        // 2. Put the isolated report on a blank white canvas
-        originalReport.style.display = 'block';
-        originalReport.style.width = '100%';
-        originalReport.style.backgroundColor = '#ffffff';
-        
-        const originalBodyBg = document.body.style.backgroundColor;
-        document.body.style.backgroundColor = '#ffffff';
-
-        // Put the isolated report on the screen
-        document.body.appendChild(originalReport);
-
-        // 3. Trigger the Native Android Printer!
-        if (window.AttendoApp && window.AttendoApp.generateNativePdf) {
-            window.AttendoApp.generateNativePdf();
-            
-            // ⏱️ Wait 2 seconds for Android to take the snapshot, then clean up
-            setTimeout(cleanup, 2000);
+        // 3. Send it to the Kotlin Background Printer!
+        if (window.AttendoApp && window.AttendoApp.printHtml) {
+            window.AttendoApp.printHtml(fullHtml);
         } else {
-            // Desktop behavior
-            window.print();
-            cleanup();
-        }
-
-        // 4. The Cleanup Crew: Puts your app back exactly how it was
-        function cleanup() {
-            if (originalReport && originalReport.parentNode) {
-                document.body.removeChild(originalReport); // Destroy the temporary report
+            // Fallback for Desktop Users
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.write(fullHtml);
+                printWindow.document.close();
+                printWindow.onload = function() {
+                    setTimeout(() => {
+                        printWindow.print();
+                    }, 300);
+                };
+            } else {
+                window.print(); // Ultimate fallback
             }
-            document.body.style.backgroundColor = originalBodyBg; // Restore background
-            
-            // Bring back the settings page and original app
-            visibilityStates.forEach(state => {
-                state.element.style.display = state.display;
-            });
         }
     },
 
