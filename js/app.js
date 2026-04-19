@@ -1016,7 +1016,24 @@ const App = {
             originalElement.innerHTML = html;
         }
 
-        // 1. Create a "Clean Room" invisible iframe (a mini web browser)
+        // 🧠 1. EXTRACT ALL CSS FROM BROWSER MEMORY
+        // This bypasses all Android download blocks by grabbing the live CSS rules
+        let inlineCSS = '';
+        for (let i = 0; i < document.styleSheets.length; i++) {
+            try {
+                let sheet = document.styleSheets[i];
+                let rules = sheet.cssRules || sheet.rules;
+                if (rules) {
+                    for (let j = 0; j < rules.length; j++) {
+                        inlineCSS += rules[j].cssText + '\n';
+                    }
+                }
+            } catch (e) {
+                console.warn("Skipped a cross-origin stylesheet");
+            }
+        }
+
+        // 2. Create the Clean Room iframe
         const iframe = document.createElement('iframe');
         iframe.style.position = 'fixed';
         iframe.style.right = '-2000px'; // Hide it way off screen
@@ -1025,25 +1042,18 @@ const App = {
         iframe.style.height = '1500px'; // Give it plenty of height so nothing cuts off
         document.body.appendChild(iframe);
 
-        // 2. Grab all the CSS styles from your main website
-        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-            .map(tag => tag.outerHTML)
-            .join('\n');
-
-        // 📍 THE FIX: Give the iframe a GPS so it can find your CSS files!
-        const baseUrl = `<base href="${window.location.origin}${window.location.pathname}">`;
-
-        // 3. Build a perfect, isolated copy of the report inside the Clean Room
+        // 3. Build the perfect copy and inject the memory-extracted CSS
         const iframeDoc = iframe.contentWindow.document;
         iframeDoc.open();
         iframeDoc.write(`
             <!DOCTYPE html>
             <html>
             <head>
-                ${baseUrl}
-                ${styles}
                 <style>
-                    /* OVERRIDE EVERYTHING: Force the background to be white and visible */
+                    /* Inject all the CSS rules we stole from memory! */
+                    ${inlineCSS}
+                    
+                    /* Override rules to guarantee visibility */
                     body { background: white !important; padding: 20px; margin: 0; }
                     #report-container { 
                         display: block !important; 
@@ -1060,7 +1070,7 @@ const App = {
         `);
         iframeDoc.close();
 
-        // 4. ⏱️ Wait 1.5 seconds. (We added 500ms so the CSS files have time to download!)
+        // 4. ⏱️ Wait 1 second, then snap the picture!
         setTimeout(() => {
             // Target the pristine copy inside the iframe
             const targetElement = iframeDoc.getElementById('report-container');
@@ -1069,7 +1079,7 @@ const App = {
                 margin:       0.2,
                 filename:     'AttenDO_Semester_Report.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true }, // Scale 2 is back for crisp text!
+                html2canvas:  { scale: 2, useCORS: true }, 
                 jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
 
@@ -1077,7 +1087,7 @@ const App = {
             if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
                 html2pdf().set(opt).from(targetElement).outputPdf('datauristring').then(function(pdfBase64) {
                     window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-                    document.body.removeChild(iframe); // 🧹 Destroy the Clean Room
+                    document.body.removeChild(iframe); 
                 }).catch(err => {
                     console.error("PDF Generation Error: ", err);
                     document.body.removeChild(iframe);
@@ -1086,10 +1096,10 @@ const App = {
             // Desktop Browser Logic
             else {
                 html2pdf().set(opt).from(targetElement).save().then(() => {
-                    document.body.removeChild(iframe); // 🧹 Destroy the Clean Room
+                    document.body.removeChild(iframe); 
                 });
             }
-        }, 1500); // The 1500ms delay is crucial to let the iframe render and styles fetch
+        }, 1000); 
     },
 
     renderSemesterArchives() {
