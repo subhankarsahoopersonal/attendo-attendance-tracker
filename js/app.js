@@ -1005,85 +1005,87 @@ const App = {
 
         const html = StorageManager.generateAttendancePDFHtml(data);
 
-        // Fetch the report container or create one if it doesn't exist
-        // Note: For this to work best as written, the HTML should be inserted into a div.
-        const element = document.createElement('div');
-        element.id = 'report-container';
-        element.style.display = 'none'; // Hide it from the user
-        element.innerHTML = html;
-
+        // Create a temporary original container
+        const originalElement = document.createElement('div');
+        originalElement.id = 'report-container';
         // Extract only the body content if it's a full HTML document snippet
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if (bodyMatch) {
-            element.innerHTML = bodyMatch[1];
+            originalElement.innerHTML = bodyMatch[1];
+        } else {
+            originalElement.innerHTML = html;
         }
 
-        document.body.appendChild(element);
+        // 1. Create a "Clean Room" invisible iframe (a mini web browser)
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '-2000px'; // Hide it way off screen
+        iframe.style.bottom = '-2000px';
+        iframe.style.width = '800px';   // Force a nice, wide desktop layout
+        iframe.style.height = '1500px'; // Give it plenty of height so nothing cuts off
+        document.body.appendChild(iframe);
 
-        // We need to briefly make it visible to html2canvas, but push it off-screen 
-        // to avoid visual disruption for the user.
-        element.style.position = 'absolute';
-        element.style.left = '-9999px';
-        element.style.top = '0px';
-        element.style.display = 'block';
+        // 2. Grab all the CSS styles from your main website
+        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+            .map(tag => tag.outerHTML)
+            .join('\n');
 
-        if (!element) {
-            console.error("Could not find the report-container!");
-            return;
-        }
+        // 3. Build a perfect, isolated copy of the report inside the Clean Room
+        const iframeDoc = iframe.contentWindow.document;
+        iframeDoc.open();
+        iframeDoc.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                ${styles}
+                <style>
+                    /* OVERRIDE EVERYTHING: Force the background to be white and visible */
+                    body { background: white !important; padding: 20px; margin: 0; }
+                    #report-container { 
+                        display: block !important; 
+                        opacity: 1 !important; 
+                        visibility: visible !important; 
+                        transform: none !important; 
+                    }
+                </style>
+            </head>
+            <body>
+                ${originalElement.outerHTML}
+            </body>
+            </html>
+        `);
+        iframeDoc.close();
 
-        // THE SAFE SETTINGS
-        const opt = {
-            margin:       0.2,
-            filename:     'AttenDO_Semester_Report.pdf',
-            image:        { type: 'jpeg', quality: 0.95 },
-            html2canvas:  {
-                scale: 1,               // 🛑 CRITICAL: Stops the mobile GPU from crashing!
-                useCORS: true,
-                scrollY: 0,
-                backgroundColor: '#ffffff'
-            },
-            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-        };
+        // 4. ⏱️ Wait 1 full second for the Clean Room to load the fonts and CSS
+        setTimeout(() => {
+            // Target the pristine copy inside the iframe
+            const targetElement = iframeDoc.getElementById('report-container');
 
-        // 1. Android App Logic
-        if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
-
-            // Let's use the REAL element this time. No clones. No hiding.
-            html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
-
-                // Send to Kotlin
-                window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-
-                // Cleanup
-                document.body.removeChild(element);
-
-            }).catch(err => {
-                console.error("PDF Generation Error: ", err);
-                document.body.removeChild(element);
-            });
-
-        }
-        // 2. Desktop Browser Logic
-        else {
-            // Revert back to the simple print for desktop because it handles the 
-            // layout much better than the offscreen div approach when using html2pdf directly.
-            // When falling back to window.print, we don't use the offscreen div we just made.
-            document.body.removeChild(element);
-            
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) {
-                this.showCustomAlert('Please allow popups to generate the PDF report.');
-                return;
-            }
-            printWindow.document.write(html);
-            printWindow.document.close();
-
-            // Auto-trigger print dialog after content loads
-            printWindow.onload = () => {
-                setTimeout(() => printWindow.print(), 300);
+            const opt = {
+                margin:       0.2,
+                filename:     'AttenDO_Semester_Report.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true }, // Scale 2 is back for crisp text!
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
-        }
+
+            // Android App Logic
+            if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
+                html2pdf().set(opt).from(targetElement).outputPdf('datauristring').then(function(pdfBase64) {
+                    window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
+                    document.body.removeChild(iframe); // 🧹 Destroy the Clean Room
+                }).catch(err => {
+                    console.error("PDF Generation Error: ", err);
+                    document.body.removeChild(iframe);
+                });
+            } 
+            // Desktop Browser Logic
+            else {
+                html2pdf().set(opt).from(targetElement).save().then(() => {
+                    document.body.removeChild(iframe); // 🧹 Destroy the Clean Room
+                });
+            }
+        }, 1000); // The 1000ms delay is crucial to let the iframe render
     },
 
     renderSemesterArchives() {
