@@ -1005,101 +1005,87 @@ const App = {
 
         const html = StorageManager.generateAttendancePDFHtml(data);
 
-        // Create a temporary original container
-        const originalElement = document.createElement('div');
-        originalElement.id = 'report-container';
-        // Extract only the body content if it's a full HTML document snippet
+        // 1. Grab the REAL element directly from your screen
+        const element = document.createElement('div');
+        element.id = 'report-container';
+        element.style.position = 'absolute';
+        element.style.left = '-9999px';
+        element.style.top = '0';
+        
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         if (bodyMatch) {
-            originalElement.innerHTML = bodyMatch[1];
+            element.innerHTML = bodyMatch[1];
         } else {
-            originalElement.innerHTML = html;
+            element.innerHTML = html;
         }
+        document.body.appendChild(element);
 
-        // 🧠 1. EXTRACT ALL CSS FROM BROWSER MEMORY
-        // This bypasses all Android download blocks by grabbing the live CSS rules
-        let inlineCSS = '';
-        for (let i = 0; i < document.styleSheets.length; i++) {
-            try {
-                let sheet = document.styleSheets[i];
-                let rules = sheet.cssRules || sheet.rules;
-                if (rules) {
-                    for (let j = 0; j < rules.length; j++) {
-                        inlineCSS += rules[j].cssText + '\n';
+        // 2. Hide the dark modal menu momentarily so it doesn't block the camera!
+        // (We use opacity so it doesn't break your app's layout, it just becomes invisible)
+        const allModals = document.querySelectorAll('.modal, .bottom-sheet, .overlay, [id*="modal"]');
+        allModals.forEach(m => m.style.opacity = '0'); 
+
+        // 3. Scroll to the absolute top of the page so the Purple Header doesn't get cut off!
+        const originalScroll = window.scrollY;
+        window.scrollTo(0, 0);
+
+        // 4. The Magic Settings
+        const opt = {
+            margin:       0.2,
+            filename:     'AttenDO_Semester_Report.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true, 
+                scrollY: 0,
+                windowWidth: 800, // Force the camera to use a wide, desktop lens
+                onclone: function(clonedDoc) {
+                    // 🪄 THE MAGIC HOOK: This edits the DOM *inside* the camera before it snaps!
+                    const clonedReport = clonedDoc.getElementById('report-container');
+                    if (!clonedReport) return;
+                    
+                    // Force it to be wide and visible inside the clone
+                    clonedReport.style.display = 'block';
+                    clonedReport.style.width = '800px';
+                    clonedReport.style.position = 'static';
+                    clonedReport.style.left = '0';
+
+                    // Fix the "Cut Off Header" bug by forcing all parent wrappers to expand
+                    let parent = clonedReport.parentNode;
+                    while (parent && parent !== clonedDoc.body) {
+                        parent.style.overflow = 'visible';
+                        parent.style.height = 'auto';
+                        parent.style.position = 'static';
+                        parent = parent.parentNode;
                     }
                 }
-            } catch (e) {
-                console.warn("Skipped a cross-origin stylesheet");
+            }, 
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Helper function to restore the screen after the picture is taken
+        function restoreScreen() {
+            allModals.forEach(m => m.style.opacity = '1'); // Bring the modal back
+            window.scrollTo(0, originalScroll);            // Scroll back to where the user was
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
             }
         }
 
-        // 2. Create the Clean Room iframe
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.right = '-2000px'; // Hide it way off screen
-        iframe.style.bottom = '-2000px';
-        iframe.style.width = '800px';   // Force a nice, wide desktop layout
-        iframe.style.height = '1500px'; // Give it plenty of height so nothing cuts off
-        document.body.appendChild(iframe);
-
-        // 3. Build the perfect copy and inject the memory-extracted CSS
-        const iframeDoc = iframe.contentWindow.document;
-        iframeDoc.open();
-        iframeDoc.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    /* Inject all the CSS rules we stole from memory! */
-                    ${inlineCSS}
-                    
-                    /* Override rules to guarantee visibility */
-                    body { background: white !important; padding: 20px; margin: 0; }
-                    #report-container { 
-                        display: block !important; 
-                        opacity: 1 !important; 
-                        visibility: visible !important; 
-                        transform: none !important; 
-                    }
-                </style>
-            </head>
-            <body class="${document.body.className}">
-                ${originalElement.outerHTML}
-            </body>
-            </html>
-        `);
-        iframeDoc.close();
-
-        // 4. ⏱️ Wait 1 second, then snap the picture!
-        setTimeout(() => {
-            // Target the pristine copy inside the iframe
-            const targetElement = iframeDoc.getElementById('report-container');
-
-            const opt = {
-                margin:       0.2,
-                filename:     'AttenDO_Semester_Report.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true }, 
-                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-
-            // Android App Logic
-            if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
-                html2pdf().set(opt).from(targetElement).outputPdf('datauristring').then(function(pdfBase64) {
-                    window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
-                    document.body.removeChild(iframe); 
-                }).catch(err => {
-                    console.error("PDF Generation Error: ", err);
-                    document.body.removeChild(iframe);
-                });
-            } 
-            // Desktop Browser Logic
-            else {
-                html2pdf().set(opt).from(targetElement).save().then(() => {
-                    document.body.removeChild(iframe); 
-                });
-            }
-        }, 1000); 
+        // 5. Generate!
+        if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
+            html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
+                window.AttendoApp.savePdfToDevice(pdfBase64, "AttenDO_Report.pdf");
+                restoreScreen(); // Clean up
+            }).catch(err => {
+                console.error("PDF Error: ", err);
+                restoreScreen(); // Clean up even if it fails
+            });
+        } else {
+            html2pdf().set(opt).from(element).save().then(() => {
+                restoreScreen();
+            });
+        }
     },
 
     renderSemesterArchives() {
