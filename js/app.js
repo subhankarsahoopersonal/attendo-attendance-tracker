@@ -989,7 +989,7 @@ const App = {
         URL.revokeObjectURL(url);
     },
 
-    downloadAttendancePDF(archiveData) {
+    async downloadAttendancePDF(archiveData) {
         const data = archiveData || {
             subjects: StorageManager.getSubjects(),
             history: StorageManager.getHistory(),
@@ -1004,11 +1004,6 @@ const App = {
         }
 
         const html = StorageManager.generateAttendancePDFHtml(data);
-
-        // Optional: Tell the user it's working
-        if (window.AttendoApp && window.AttendoApp.showToast) {
-            window.AttendoApp.showToast("Building Report... Please wait.");
-        }
 
         // 1. Grab the REAL element directly from your screen (Inject for dynamic creation)
         const element = document.createElement('div');
@@ -1025,80 +1020,86 @@ const App = {
 
         if (!element) return;
 
-        // 1. Completely hide modals from the rendering engine (using display: none)
-        const modals = document.querySelectorAll('.modal, .bottom-sheet, .overlay, [id*="modal"]');
-        modals.forEach(m => {
-            // Store original display to restore later
-            m.setAttribute('data-orig-display', m.style.display || '');
-            m.style.display = 'none';
-        });
+        // Give the user a heads up since this takes a second
+        if (window.AttendoApp && window.AttendoApp.showToast) {
+            window.AttendoApp.showToast("Rendering beautiful report... please wait.");
+        }
 
-        // 2. THE ROOT CAUSE FIX: Unroll the scrollable containers
-        // We climb up the DOM tree and forcefully disable 'overflow' on every parent
+        // 🎨 1. THE STYLING FIX: Force-load all external CSS directly into the HTML
+        // This guarantees the camera can see your purple banner and flexbox layouts!
+        const links = document.querySelectorAll('link[rel="stylesheet"]');
+        const injectedStyles = [];
+        for (let link of links) {
+            try {
+                const response = await fetch(link.href);
+                const cssText = await response.text();
+                const style = document.createElement('style');
+                style.innerHTML = cssText;
+                document.head.appendChild(style);
+                injectedStyles.push(style);
+            } catch (e) {
+                console.warn("Could not inline CSS: ", e);
+            }
+        }
+
+        // 2. Hide modals so they don't block the camera
+        const modals = document.querySelectorAll('.modal, .bottom-sheet, .overlay, [id*="modal"]');
+        modals.forEach(m => m.style.opacity = '0');
+
+        // 📏 3. THE BLANK PAGE FIX: Unroll the scroll bars!
         const parentsToRestore = [];
         let parent = element.parentNode;
-        
         while (parent && parent !== document) {
-            parentsToRestore.push({
-                el: parent,
-                overflow: parent.style.overflow,
-                height: parent.style.height
-            });
-            // Force the container to expand flat like a printed sheet of paper
+            parentsToRestore.push({ el: parent, overflow: parent.style.overflow, height: parent.style.height });
             parent.style.overflow = 'visible';
             parent.style.height = 'auto';
             parent = parent.parentNode;
         }
 
-        // Explicitly unroll the body and html tags
         const origBodyOverflow = document.body.style.overflow;
         const origHtmlOverflow = document.documentElement.style.overflow;
         document.body.style.overflow = 'visible';
         document.documentElement.style.overflow = 'visible';
 
-        // 3. Guarantee a solid white background (transparent backgrounds render black/blank)
-        const origBg = element.style.backgroundColor;
-        element.style.backgroundColor = '#ffffff';
-
-        // 4. Scroll to the absolute top of the newly flattened page
+        // Scroll to the very top to protect the purple header
         const origScroll = window.scrollY;
         window.scrollTo(0, 0);
 
+        // 📸 4. CAPTURE SETTINGS
         const opt = {
             margin: 0.2,
             filename: 'AttenDO_Semester_Report.pdf',
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: {
-                scale: 2, 
+                scale: 1.5, // 1.5 is the sweet spot: Keeps Android memory from crashing, but text stays crisp!
                 useCORS: true,
-                scrollY: 0,
-                backgroundColor: '#ffffff'
+                scrollY: 0
+                // Notice we removed the hardcoded white background so your purple banner can shine!
             },
             jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
         // Helper to put your app perfectly back to normal after the picture
         function restoreEverything() {
-            modals.forEach(m => {
-                m.style.display = m.getAttribute('data-orig-display') || '';
-                m.removeAttribute('data-orig-display');
-            });
+            modals.forEach(m => m.style.opacity = '1');
             parentsToRestore.forEach(p => {
                 p.el.style.overflow = p.overflow;
                 p.el.style.height = p.height;
             });
             document.body.style.overflow = origBodyOverflow;
             document.documentElement.style.overflow = origHtmlOverflow;
-            element.style.backgroundColor = origBg;
             window.scrollTo(0, origScroll);
             
-            // Clean up our dynamically injected report container
+            // Clean up dynamically created nodes
+            injectedStyles.forEach(s => {
+                if (s && s.parentNode) s.parentNode.removeChild(s);
+            });
             if (element && element.parentNode) {
                 element.parentNode.removeChild(element);
             }
         }
 
-        // Give the browser 300ms to visually unroll the page, then capture
+        // ⏱️ Wait 500ms for the injected CSS to fully apply, then snap!
         setTimeout(() => {
             if (window.AttendoApp && window.AttendoApp.savePdfToDevice) {
                 html2pdf().set(opt).from(element).outputPdf('datauristring').then(function(pdfBase64) {
@@ -1111,7 +1112,7 @@ const App = {
             } else {
                 html2pdf().set(opt).from(element).save().then(restoreEverything);
             }
-        }, 300);
+        }, 500);
     },
 
     renderSemesterArchives() {
