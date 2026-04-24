@@ -94,6 +94,13 @@ body {
     line-height: 1.6;
     min-height: 100vh;
     overflow-x: hidden;
+
+    /* Prevents text selection highlight */
+    -webkit-user-select: none;
+    user-select: none;
+
+    /* Disables the long-press popup menu (Copy/Share/Select All) */
+    -webkit-touch-callout: none;
 }
 
 /* Background gradient effect */
@@ -507,6 +514,10 @@ textarea {
     font-size: inherit;
     border: none;
     outline: none;
+
+    /* IMPORTANT: Re-enable selection for input fields! */
+    -webkit-user-select: auto;
+    user-select: auto;
 }
 
 /* ========================================
