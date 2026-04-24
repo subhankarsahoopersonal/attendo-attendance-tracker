@@ -2748,13 +2748,13 @@ select.form-input option {
     }
 
     .chat-window {
-        left: var(--space-md);
+        left: auto;
         right: var(--space-md);
-        width: auto;
+        width: 380px;
+        max-width: calc(100vw - 32px);
         bottom: 72px;
-        top: var(--space-md);
         height: auto;
-        max-height: none;
+        max-height: 70vh;
     }
 
     .chat-fab {
@@ -3001,12 +3001,13 @@ select.form-input option {
 
     /* Chat window takes more space */
     .chat-window {
-        left: var(--space-sm);
+        left: auto;
         right: var(--space-sm);
+        width: 350px;
+        max-width: calc(100vw - 32px);
         bottom: 64px;
-        top: var(--space-sm);
         height: auto;
-        max-height: none;
+        max-height: 70vh;
         border-radius: var(--radius-xl);
     }
 
