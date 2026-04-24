@@ -344,6 +344,7 @@ const DashboardUI = {
     localStorage.setItem('attendo_needs_sync', 'true');
 
     // Refresh UI immediately so the user feels no lag
+    this._useCounter = true;
     this.renderToday();
     this.renderSubjectStats();
     App.checkAttendanceWarnings();
@@ -365,6 +366,54 @@ const DashboardUI = {
     }, 3000);
   },
 
+  /**
+   * Animate a number by ticking through each step visibly
+   * e.g. 89.0 → 89.1 → 89.2 → 89.3
+   * For large jumps, increases step size to finish in ~20 ticks
+   */
+  animateNumber(el, newVal, suffix = '', decimals = 0, stepDelay = 60) {
+    if (!el) return;
+    const oldVal = parseFloat(el.textContent) || 0;
+    if (oldVal === newVal) {
+      el.textContent = newVal.toFixed(decimals) + suffix;
+      return;
+    }
+
+    const minStep = decimals > 0 ? Math.pow(10, -decimals) : 1;
+    const diff = Math.abs(newVal - oldVal);
+    const direction = newVal > oldVal ? 1 : -1;
+
+    // If natural steps exceed 25, use a fixed step of 25 for large jumps
+    const naturalSteps = Math.round(diff / minStep);
+    let step;
+    if (naturalSteps <= 25) {
+      step = minStep;
+    } else {
+      step = decimals > 0 ? minStep * 25 : 25;
+    }
+
+    // Cap total animation to 1 second for large numbers
+    const actualTicks = Math.ceil(diff / step);
+    const delay = actualTicks > 0 ? Math.min(stepDelay, Math.floor(1000 / actualTicks)) : stepDelay;
+
+    let current = oldVal;
+
+    const tick = () => {
+      current = parseFloat((current + step * direction).toFixed(decimals));
+
+      // Check if we've reached or passed the target
+      if ((direction === 1 && current >= newVal) || (direction === -1 && current <= newVal)) {
+        el.textContent = newVal.toFixed(decimals) + suffix;
+        return;
+      }
+
+      el.textContent = current.toFixed(decimals) + suffix;
+      setTimeout(tick, delay);
+    };
+
+    setTimeout(tick, delay);
+  },
+
   updateQuickStats() {
     const subjects = StorageManager.getSubjects();
     const totalSubjects = subjects.length;
@@ -378,17 +427,25 @@ const DashboardUI = {
       totalAttended += sub.attended;
     });
 
-    const overallPercentage = totalClasses > 0 ? ((totalAttended / totalClasses) * 100).toFixed(1) : 0;
+    const overallPercentage = totalClasses > 0 ? parseFloat(((totalAttended / totalClasses) * 100).toFixed(1)) : 0;
 
     const elSafe = document.getElementById('qs-safe-count');
     const elTotal = document.getElementById('qs-total-subjects');
     const elAttended = document.getElementById('qs-total-classes');
     const elOverall = document.getElementById('qs-overall-percentage');
 
-    if (elSafe) elSafe.textContent = safeSubjects;
-    if (elTotal) elTotal.textContent = totalSubjects;
-    if (elAttended) elAttended.textContent = totalClasses;
-    if (elOverall) elOverall.textContent = `${overallPercentage}%`;
+    if (this._useCounter) {
+      this._useCounter = false;
+      this.animateNumber(elSafe, safeSubjects, '', 0, 80);
+      this.animateNumber(elTotal, totalSubjects, '', 0, 80);
+      this.animateNumber(elAttended, totalClasses, '', 0, 40);
+      this.animateNumber(elOverall, overallPercentage, '%', 1, 70);
+    } else {
+      if (elSafe) elSafe.textContent = safeSubjects;
+      if (elTotal) elTotal.textContent = totalSubjects;
+      if (elAttended) elAttended.textContent = totalClasses;
+      if (elOverall) elOverall.textContent = `${overallPercentage}%`;
+    }
 
     // ==========================================
     // ANDROID WIDGET BRIDGE
