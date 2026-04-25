@@ -125,11 +125,13 @@ body::before {
             radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
             radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
     }
+
     50% {
         background:
             radial-gradient(ellipse at 40% 60%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
             radial-gradient(ellipse at 70% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
     }
+
     100% {
         background:
             radial-gradient(ellipse at 60% 40%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
@@ -817,7 +819,230 @@ textarea {
     gap: var(--space-lg);
 }
 
-/* Stats Card */
+/* ========================================
+   Dashboard Poster / Banner
+   ======================================== */
+
+.dashboard-poster {
+    position: relative;
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg) var(--space-xl);
+    margin-bottom: var(--space-xl);
+    overflow: hidden;
+    animation: posterSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(-12px);
+}
+
+@keyframes posterSlideIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dashboard-poster.poster-dismissing {
+    animation: posterSlideOut 0.4s ease forwards;
+}
+
+@keyframes posterSlideOut {
+    to {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.96);
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        max-height: 0;
+    }
+}
+
+/* Info Poster */
+.info-poster {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.08) 50%, rgba(168, 85, 247, 0.06) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+/* Birthday Poster */
+.birthday-poster {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(168, 85, 247, 0.12) 30%, rgba(99, 102, 241, 0.1) 60%, rgba(16, 185, 129, 0.08) 100%);
+    border: 1px solid rgba(236, 72, 153, 0.3);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    min-height: 100px;
+}
+
+.poster-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    position: relative;
+    z-index: 2;
+}
+
+.poster-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    animation: posterIconFloat 3s ease-in-out infinite;
+}
+
+.birthday-icon {
+    background: rgba(236, 72, 153, 0.15) !important;
+    border-color: rgba(236, 72, 153, 0.25) !important;
+    font-size: 2.8rem;
+    animation: birthdayBounce 2s ease-in-out infinite !important;
+}
+
+@keyframes posterIconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+@keyframes birthdayBounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    25% { transform: translateY(-6px) scale(1.05); }
+    50% { transform: translateY(0) scale(1); }
+    75% { transform: translateY(-3px) scale(1.02); }
+}
+
+.poster-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.poster-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    margin-bottom: var(--space-xs);
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.birthday-poster .poster-title {
+    background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 50%, #6366f1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: var(--font-size-2xl);
+}
+
+.poster-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.poster-subtitle strong {
+    color: var(--accent-primary);
+}
+
+.poster-dismiss {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    z-index: 5;
+    line-height: 1;
+}
+
+.poster-dismiss:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+    transform: scale(1.1);
+}
+
+/* Poster Glow Effect */
+.poster-glow {
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: posterGlowPulse 4s ease-in-out infinite;
+}
+
+.birthday-glow {
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, transparent 70%) !important;
+    width: 250px;
+    height: 250px;
+}
+
+@keyframes posterGlowPulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Confetti Animation */
+.poster-confetti-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.confetti-piece {
+    position: absolute;
+    top: -10px;
+    left: var(--x);
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    opacity: 0;
+    animation: confettiFall 3.5s ease-in var(--delay) infinite;
+}
+
+.confetti-0 { background: #ec4899; width: 6px; height: 10px; }
+.confetti-1 { background: #6366f1; width: 8px; height: 6px; }
+.confetti-2 { background: #f59e0b; width: 5px; height: 8px; border-radius: 50%; }
+.confetti-3 { background: #10b981; width: 7px; height: 7px; }
+.confetti-4 { background: #a855f7; width: 9px; height: 5px; border-radius: 1px; }
+
+@keyframes confettiFall {
+    0% {
+        transform: translateY(-10px) translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.9;
+    }
+    100% {
+        transform: translateY(140px) translateX(var(--drift)) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* ========================================
+   Stats Cards
+   ======================================== */
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -842,8 +1067,17 @@ textarea {
 }
 
 @keyframes ambientPulse {
-    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
-    50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 1;
+    }
 }
 
 .stat-card {
@@ -863,10 +1097,21 @@ textarea {
     transform: translateY(10px);
 }
 
-.stat-card:nth-child(1) { animation-delay: 0.1s; }
-.stat-card:nth-child(2) { animation-delay: 0.2s; }
-.stat-card:nth-child(3) { animation-delay: 0.3s; }
-.stat-card:nth-child(4) { animation-delay: 0.4s; }
+.stat-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.stat-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.stat-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.stat-card:nth-child(4) {
+    animation-delay: 0.4s;
+}
 
 @keyframes statCardFadeIn {
     to {
@@ -891,12 +1136,15 @@ textarea {
 .stat-card:nth-child(1)::before {
     background: linear-gradient(90deg, #22c55e, #4ade80);
 }
+
 .stat-card:nth-child(2)::before {
     background: var(--accent-gradient);
 }
+
 .stat-card:nth-child(3)::before {
     background: linear-gradient(90deg, #eab308, #fbbf24);
 }
+
 .stat-card:nth-child(4)::before {
     background: linear-gradient(90deg, #a855f7, #c084fc);
 }
@@ -910,12 +1158,15 @@ textarea {
 .stat-card:nth-child(1):hover {
     box-shadow: 0 8px 30px rgba(34, 197, 94, 0.15);
 }
+
 .stat-card:nth-child(2):hover {
     box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
 }
+
 .stat-card:nth-child(3):hover {
     box-shadow: 0 8px 30px rgba(234, 179, 8, 0.15);
 }
+
 .stat-card:nth-child(4):hover {
     box-shadow: 0 8px 30px rgba(168, 85, 247, 0.15);
 }
@@ -1449,7 +1700,7 @@ textarea {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
     opacity: 0;
     transition: opacity 0.25s ease;
 }
@@ -1495,6 +1746,20 @@ textarea {
 .btn-attended.active {
     background: var(--color-safe);
     color: white;
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+    animation: btnGlow 2s ease-in-out infinite;
+}
+
+@keyframes btnGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+    }
 }
 
 .btn-missed {
@@ -3012,6 +3277,36 @@ select.form-input option {
     .stats-grid {
         grid-template-columns: 1fr 1fr;
         gap: var(--space-md);
+    }
+
+    .dashboard-poster {
+        padding: var(--space-md) var(--space-lg);
+    }
+
+    .poster-content {
+        gap: var(--space-md);
+    }
+
+    .poster-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.8rem;
+    }
+
+    .birthday-icon {
+        font-size: 2rem;
+    }
+
+    .poster-title {
+        font-size: var(--font-size-lg);
+    }
+
+    .birthday-poster .poster-title {
+        font-size: var(--font-size-xl);
+    }
+
+    .poster-subtitle {
+        font-size: var(--font-size-xs);
     }
 
     .card-grid {

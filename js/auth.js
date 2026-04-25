@@ -95,6 +95,11 @@ const AuthManager = {
         // (their data is safe in Firestore; this prevents it leaking to next user)
         StorageManager.clearAllData();
 
+        // Clear poster dismiss so it shows fresh on re-login
+        localStorage.removeItem('poster_dismissed');
+        const posterContainer = document.getElementById('dashboard-poster-container');
+        if (posterContainer) posterContainer.innerHTML = '';
+
         // Clear dashboard DOM content (prevents stale data from previous user)
         const todayList = document.getElementById('today-classes-list');
         if (todayList) todayList.innerHTML = '';

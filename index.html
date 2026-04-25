@@ -207,6 +207,9 @@
                     </div>
                 </header>
 
+                <!-- Dashboard Poster / Banner -->
+                <div id="dashboard-poster-container"></div>
+
                 <!-- Quick Stats -->
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -282,6 +285,21 @@
                 <header class="page-header">
                     <h1 class="page-title">Settings</h1>
                 </header>
+
+                <div class="settings-section">
+                    <h2 class="settings-section-title">Personal</h2>
+                    <div class="settings-card">
+                        <div class="settings-row">
+                            <div>
+                                <div class="settings-label">Date of Birth</div>
+                                <div class="settings-description">Get a special birthday wish on your dashboard! 🎂</div>
+                            </div>
+                            <input type="date" id="settings-dob" 
+                                style="padding: 6px 10px; background: var(--bg-card); color: white; border: 1px solid var(--border-color); border-radius: 6px; font-family: var(--font-family); font-size: var(--font-size-sm);"
+                                onchange="App.saveDateOfBirth(this.value)">
+                        </div>
+                    </div>
+                </div>
 
                 <div class="settings-section">
                     <h2 class="settings-section-title">Notifications & Goals</h2>

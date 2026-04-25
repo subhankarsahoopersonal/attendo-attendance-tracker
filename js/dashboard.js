@@ -9,9 +9,177 @@ let isActivelyClicking = false;
 const DashboardUI = {
 
   init() {
+    this.renderDashboardPoster();
     this.renderToday();
     this.renderSubjectStats();
     this.setupEventListeners();
+  },
+
+  /**
+   * Render the dashboard poster/banner area
+   * Shows birthday wish if today is user's birthday, otherwise shows info poster
+   * Waits for user name to be available before rendering
+   */
+  renderDashboardPoster() {
+    const container = document.getElementById('dashboard-poster-container');
+    if (!container) return;
+
+    // Already showing a poster? Don't re-render (prevents blip on multiple init calls)
+    if (container.querySelector('.dashboard-poster')) return;
+
+    const nameEl = document.getElementById('user-display-name');
+    const currentName = nameEl ? nameEl.textContent : '';
+
+    // If name is still the default "User", wait for it to update
+    if (!currentName || currentName === 'User') {
+      // Watch for the name to be populated by auth
+      this._waitForUserName(container);
+      return;
+    }
+
+    this._buildPoster(container);
+  },
+
+  _waitForUserName(container) {
+    const nameEl = document.getElementById('user-display-name');
+    if (!nameEl) {
+      this._buildPoster(container);
+      return;
+    }
+
+    // Use MutationObserver to detect when auth updates the name
+    const observer = new MutationObserver(() => {
+      const name = nameEl.textContent;
+      if (name && name !== 'User') {
+        observer.disconnect();
+        this._buildPoster(container);
+      }
+    });
+
+    observer.observe(nameEl, { childList: true, characterData: true, subtree: true });
+
+    // Fallback: if name never updates within 3 seconds, render anyway
+    setTimeout(() => {
+      observer.disconnect();
+      if (!container.innerHTML) {
+        this._buildPoster(container);
+      }
+    }, 3000);
+  },
+
+  _buildPoster(container) {
+    const settings = StorageManager.getSettings();
+    const dob = settings.dateOfBirth;
+    const userName = this._getUserFirstName();
+
+    // Check if today is user's birthday
+    if (dob && this._isBirthdayToday(dob)) {
+      this._renderBirthdayPoster(container, userName, dob);
+      return;
+    }
+
+    // Show important notice if one is set
+    this._renderNoticePoster(container);
+  },
+
+  _getUserFirstName() {
+    const nameEl = document.getElementById('user-display-name');
+    if (nameEl && nameEl.textContent && nameEl.textContent !== 'User') {
+      return nameEl.textContent.split(' ')[0];
+    }
+    return '';
+  },
+
+  _isBirthdayToday(dob) {
+    const today = new Date();
+    const [year, month, day] = dob.split('-').map(Number);
+    return today.getMonth() + 1 === month && today.getDate() === day;
+  },
+
+  _renderBirthdayPoster(container, userName, dob) {
+    const [year] = dob.split('-').map(Number);
+    const age = new Date().getFullYear() - year;
+    const greeting = userName ? `Happy Birthday, ${userName}! 🎉` : 'Happy Birthday! 🎉';
+    const ageText = age > 0 && age < 120 ? `You're turning <strong>${age}</strong> today!` : '';
+
+    // Birthday dismissed this session? Don't re-show (cleared on logout)
+    if (localStorage.getItem('poster_dismissed') === 'birthday') {
+      // Fall through to notice if available
+      this._renderNoticePoster(container);
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="dashboard-poster birthday-poster" id="dashboard-poster">
+        <button class="poster-dismiss" onclick="DashboardUI.dismissPoster('birthday')" title="Dismiss">×</button>
+        <div class="poster-confetti-container">
+          ${Array.from({ length: 20 }, (_, i) => `<div class="confetti-piece confetti-${i % 5}" style="--delay: ${(i * 0.15).toFixed(2)}s; --x: ${Math.random() * 100}%; --drift: ${(Math.random() * 80 - 40).toFixed(0)}px;"></div>`).join('')}
+        </div>
+        <div class="poster-content">
+          <div class="poster-icon birthday-icon">🎂</div>
+          <div class="poster-text">
+            <h2 class="poster-title">${greeting}</h2>
+            <p class="poster-subtitle">${ageText ? ageText + ' ' : ''}Wishing you an amazing day filled with joy and success! 🌟🎈</p>
+          </div>
+        </div>
+        <div class="poster-glow birthday-glow"></div>
+      </div>
+    `;
+  },
+
+  /**
+   * ============================================================
+   *  IMPORTANT NOTICE CONFIG
+   *  Set to null when no notice is needed.
+   *  Set to { icon, title, text } to show an announcement.
+   *
+   *  Example:
+   *  NOTICE: { icon: '📢', title: 'App Update v2.1', text: 'New semester management features are here!' },
+   *  NOTICE: null,   // ← no notice, poster area stays empty
+   * ============================================================
+   */
+  NOTICE: { icon: '📢', title: 'App Update v2.2', text: 'Download now to get access to new features and improvements!' },
+
+  _renderNoticePoster(container) {
+    // No notice set? Keep area empty
+    if (!this.NOTICE) {
+      container.innerHTML = '';
+      return;
+    }
+
+    // Dismissed this session? Don't re-show (cleared on logout)
+    if (localStorage.getItem('poster_dismissed') === 'notice') {
+      container.innerHTML = '';
+      return;
+    }
+
+    const notice = this.NOTICE;
+
+    container.innerHTML = `
+      <div class="dashboard-poster info-poster" id="dashboard-poster">
+        <button class="poster-dismiss" onclick="DashboardUI.dismissPoster('notice')" title="Dismiss">×</button>
+        <div class="poster-content">
+          <div class="poster-icon">${notice.icon}</div>
+          <div class="poster-text">
+            <h2 class="poster-title">${notice.title}</h2>
+            <p class="poster-subtitle">${notice.text}</p>
+          </div>
+        </div>
+        <div class="poster-glow"></div>
+      </div>
+    `;
+  },
+
+  dismissPoster(type) {
+    localStorage.setItem('poster_dismissed', type);
+    const container = document.getElementById('dashboard-poster-container');
+    const poster = document.getElementById('dashboard-poster');
+    if (poster) {
+      poster.classList.add('poster-dismissing');
+      setTimeout(() => {
+        if (container) container.innerHTML = '';
+      }, 400);
+    }
   },
 
   // SVG icons used in swipe indicators

@@ -862,8 +862,28 @@ const App = {
 
     renderSettingsPage() {
         const settings = StorageManager.getSettings();
+
+        // Load saved DOB into the input
+        const dobInput = document.getElementById('settings-dob');
+        if (dobInput && settings.dateOfBirth) {
+            dobInput.value = settings.dateOfBirth;
+        }
+
         // Render semester archives dynamically
         this.renderSemesterArchives();
+    },
+
+    saveDateOfBirth(value) {
+        StorageManager.updateSetting('dateOfBirth', value || null);
+
+        // Push to Firestore if logged in
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+            FirestoreSync.pushAll(currentUser.uid).catch(() => {});
+        }
+
+        // Show confirmation
+        this.showCustomAlert(value ? '🎂 Date of birth saved! You\'ll get a special wish on your birthday.' : 'Date of birth removed.');
     },
 
     // ========================================
