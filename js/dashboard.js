@@ -71,15 +71,24 @@ const DashboardUI = {
     const settings = StorageManager.getSettings();
     const dob = settings.dateOfBirth;
     const userName = this._getUserFirstName();
+    const isBirthday = dob && this._isBirthdayToday(dob);
+    const birthdayDismissed = localStorage.getItem('poster_birthday_dismissed') === '1';
+    const noticeDismissed = localStorage.getItem('poster_notice_dismissed') === '1';
 
-    // Check if today is user's birthday
-    if (dob && this._isBirthdayToday(dob)) {
+    // Priority 1: Birthday poster (if not dismissed)
+    if (isBirthday && !birthdayDismissed) {
       this._renderBirthdayPoster(container, userName, dob);
       return;
     }
 
-    // Show important notice if one is set
-    this._renderNoticePoster(container);
+    // Priority 2: Important notice (if not dismissed)
+    if (this.NOTICE && !noticeDismissed) {
+      this._renderNoticePoster(container);
+      return;
+    }
+
+    // Nothing to show
+    container.innerHTML = '';
   },
 
   _getUserFirstName() {
@@ -101,13 +110,6 @@ const DashboardUI = {
     const age = new Date().getFullYear() - year;
     const greeting = userName ? `Happy Birthday, ${userName}! 🎉` : 'Happy Birthday! 🎉';
     const ageText = age > 0 && age < 120 ? `You're turning <strong>${age}</strong> today!` : '';
-
-    // Birthday dismissed this session? Don't re-show (cleared on logout)
-    if (localStorage.getItem('poster_dismissed') === 'birthday') {
-      // Fall through to notice if available
-      this._renderNoticePoster(container);
-      return;
-    }
 
     container.innerHTML = `
       <div class="dashboard-poster birthday-poster" id="dashboard-poster">
@@ -141,18 +143,6 @@ const DashboardUI = {
   NOTICE: { icon: '📢', title: 'App Update v2.2', text: 'Download now to get access to new features and improvements!' },
 
   _renderNoticePoster(container) {
-    // No notice set? Keep area empty
-    if (!this.NOTICE) {
-      container.innerHTML = '';
-      return;
-    }
-
-    // Dismissed this session? Don't re-show (cleared on logout)
-    if (localStorage.getItem('poster_dismissed') === 'notice') {
-      container.innerHTML = '';
-      return;
-    }
-
     const notice = this.NOTICE;
 
     container.innerHTML = `
@@ -171,13 +161,17 @@ const DashboardUI = {
   },
 
   dismissPoster(type) {
-    localStorage.setItem('poster_dismissed', type);
+    localStorage.setItem(`poster_${type}_dismissed`, '1');
     const container = document.getElementById('dashboard-poster-container');
     const poster = document.getElementById('dashboard-poster');
     if (poster) {
       poster.classList.add('poster-dismissing');
       setTimeout(() => {
-        if (container) container.innerHTML = '';
+        // After dismiss animation, check if there's a fallback poster to show
+        if (container) {
+          container.innerHTML = '';
+          this._buildPoster(container);
+        }
       }, 400);
     }
   },

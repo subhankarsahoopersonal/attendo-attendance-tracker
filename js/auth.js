@@ -96,7 +96,8 @@ const AuthManager = {
         StorageManager.clearAllData();
 
         // Clear poster dismiss so it shows fresh on re-login
-        localStorage.removeItem('poster_dismissed');
+        localStorage.removeItem('poster_birthday_dismissed');
+        localStorage.removeItem('poster_notice_dismissed');
         const posterContainer = document.getElementById('dashboard-poster-container');
         if (posterContainer) posterContainer.innerHTML = '';
 
