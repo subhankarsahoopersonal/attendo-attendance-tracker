@@ -24,9 +24,6 @@ const DashboardUI = {
     const container = document.getElementById('dashboard-poster-container');
     if (!container) return;
 
-    // Already showing a poster? Don't re-render (prevents blip on multiple init calls)
-    if (container.querySelector('.dashboard-poster')) return;
-
     const nameEl = document.getElementById('user-display-name');
     const currentName = nameEl ? nameEl.textContent : '';
 
@@ -77,18 +74,33 @@ const DashboardUI = {
 
     // Priority 1: Birthday poster (if not dismissed)
     if (isBirthday && !birthdayDismissed) {
+      if (container.querySelector('.birthday-poster')) return; // Already showing
       this._renderBirthdayPoster(container, userName, dob);
       return;
     }
 
     // Priority 2: Important notice (if not dismissed)
     if (this.NOTICE && !noticeDismissed) {
-      this._renderNoticePoster(container);
+      if (container.querySelector('.info-poster')) return; // Already showing
+      if (container.dataset.noticePending === 'true') return; // Already waiting
+
+      // Delay notice slightly on first load to allow Firebase sync to catch up.
+      // This prevents Notice from flashing on screen before Birthday data arrives.
+      container.dataset.noticePending = 'true';
+      setTimeout(() => {
+        delete container.dataset.noticePending;
+        // Verify birthday hasn't appeared in the meantime
+        if (!container.querySelector('.birthday-poster') && !localStorage.getItem('poster_notice_dismissed')) {
+          this._renderNoticePoster(container);
+        }
+      }, 1000);
       return;
     }
 
     // Nothing to show
-    container.innerHTML = '';
+    if (container.innerHTML !== '') {
+      container.innerHTML = '';
+    }
   },
 
   _getUserFirstName() {
