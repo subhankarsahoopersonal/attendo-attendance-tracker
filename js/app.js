@@ -551,7 +551,7 @@ const App = {
         const container = document.getElementById('past-classes-list');
         if (!container) return;
 
-        const date = new Date(dateString);
+        const date = new Date(dateString + 'T00:00:00');
         const dayName = TimetableManager.DAYS[date.getDay()];
         // Get classes for this date (recurring + extra)
         const schedule = StorageManager.getClassesForDate(dayName, dateString);
@@ -574,6 +574,7 @@ const App = {
                 const status = historyEntry ? historyEntry.status : null;
                 const extraBadge = slot.isExtra ? '<span style="font-size: var(--font-size-xs); background: var(--accent-primary); color: white; padding: 2px 6px; border-radius: var(--radius-full); margin-left: var(--space-sm);">Extra</span>' : '';
 
+                if (!slot.subject) return '';
                 return `
                     <div class="class-item" style="border-bottom: 1px solid var(--border-color); padding: var(--space-sm) 0;">
                         <div class="class-info">
@@ -848,17 +849,6 @@ const App = {
     // ========================================
     // Notifications & Settings
     // ========================================
-
-    setupNotifications() {
-        if ('Notification' in window) {
-            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-                setTimeout(() => {
-                    Notification.requestPermission();
-                }, 5000);
-            }
-        }
-        setInterval(() => this.checkNotificationSchedule(), 60000);
-    },
 
     renderSettingsPage() {
         const settings = StorageManager.getSettings();
@@ -1373,8 +1363,8 @@ const App = {
         if ('Notification' in window && Notification.permission === 'granted') {
             new Notification(title, {
                 body,
-                icon: 'assets/icon.png',
-                badge: 'assets/icon.png',
+                icon: 'assets/logo.png',
+                badge: 'assets/logo.png',
                 vibrate: [200, 100, 200],
                 tag: title // Prevent duplicate system notifications
             });

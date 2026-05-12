@@ -606,6 +606,7 @@ const StorageManager = {
             timetable: this.getTimetable(),
             history: this.getHistory(),
             settings: this.getSettings(),
+            extraClasses: this.getExtraClasses(),
             notes: this.getNotes()
         };
         return JSON.stringify(data, null, 2);
@@ -630,6 +631,7 @@ const StorageManager = {
             if (data.timetable) this.setTimetable(data.timetable);
             if (data.history) this.setHistory(data.history);
             if (data.settings) this.setSettings({ ...this.DEFAULT_SETTINGS, ...data.settings });
+            if (data.extraClasses) this.setExtraClasses(data.extraClasses);
             if (data.notes) this.setNotes(data.notes);
 
             return true;
