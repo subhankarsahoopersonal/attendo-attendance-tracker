@@ -292,11 +292,12 @@
                         <div class="settings-row">
                             <div>
                                 <div class="settings-label">Date of Birth</div>
-                                <div class="settings-description">Get a special birthday wish on your dashboard! 🎂</div>
+                                <div class="settings-description">Get a special birthday wish on your dashboard! 🎂
+                                </div>
                             </div>
-                            <input type="date" id="settings-dob" 
+                            <input type="date" id="settings-dob"
                                 style="padding: 6px 10px; background: var(--bg-card); color: white; border: 1px solid var(--border-color); border-radius: 6px; font-family: var(--font-family); font-size: var(--font-size-sm);"
-                                onchange="App.saveDateOfBirth(this.value)">
+                                onblur="App.saveDateOfBirth(this.value)">
                         </div>
                     </div>
                 </div>

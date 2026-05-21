@@ -876,11 +876,8 @@ const App = {
     saveDateOfBirth(value) {
         StorageManager.updateSetting('dateOfBirth', value || null);
 
-        // Push to Firestore if logged in
-        const currentUser = firebase.auth().currentUser;
-        if (currentUser) {
-            FirestoreSync.pushAll(currentUser.uid).catch(() => {});
-        }
+        // Firestore sync handled automatically by the setSettings() auto-sync patch
+        // (only writes the 'settings' document, not all 7)
 
         // Show confirmation
         this.showCustomAlert(value ? '🎂 Date of birth saved! You\'ll get a special wish on your birthday.' : 'Date of birth removed.');
@@ -970,13 +967,9 @@ const App = {
         // Archive and wipe
         StorageManager.archiveCurrentSemester(name);
 
-        // Push to Firestore if logged in
-        const currentUser = firebase.auth().currentUser;
-        if (currentUser) {
-            FirestoreSync.pushAll(currentUser.uid).catch(err => {
-                console.log('Offline mode: archive queued for sync');
-            });
-        }
+        // Firestore sync handled automatically by the auto-sync patches
+        // (archiveCurrentSemester → setSemesterArchives + clearAllData → init → all setters are patched)
+        // Plus location.reload() below triggers a fresh login sync anyway.
 
         // Close modal and reload UI
         document.querySelector('.modal-overlay').classList.remove('active');

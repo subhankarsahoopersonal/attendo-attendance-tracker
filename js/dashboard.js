@@ -523,18 +523,12 @@ const DashboardUI = {
     this.renderSubjectStats();
     App.checkAttendanceWarnings();
 
-    // 2. ⚡ FEED THE FIREBASE QUEUE!
-    // We get the current user ID, and tell Firebase to save the new state.
-    const currentUser = firebase.auth().currentUser;
-    if (currentUser) {
-      // If offline, Firebase catches this, queues it, and waits for internet!
-      // We don't use 'await' here because we want it to happen silently in the background.
-      FirestoreSync.pushAll(currentUser.uid).catch(err => {
-        console.log("Offline mode: Firebase has queued your attendance mark.");
-      });
-    }
+    // 2. ⚡ FIREBASE SYNC (handled automatically!)
+    // The auto-sync patch on setHistory() and setSubjects() already syncs
+    // only the 2 changed documents individually (debounced 500ms).
+    // The 'attendo_needs_sync' dirty flag above ensures offline recovery on next login.
 
-    // 2. Unlock it after 3 seconds (giving the server time to save your new data)
+    // 3. Unlock it after 3 seconds (giving the server time to save your new data)
     setTimeout(() => {
       isActivelyClicking = false;
     }, 3000);
