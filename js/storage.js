@@ -645,11 +645,13 @@ const StorageManager = {
     clearAllData() {
         // Preserve archives and settings across clears
         const archives = localStorage.getItem(this.KEYS.SEMESTER_ARCHIVES);
+        const settings = localStorage.getItem(this.KEYS.SETTINGS);
         Object.values(this.KEYS).forEach(key => {
             localStorage.removeItem(key);
         });
-        // Restore archives
+        // Restore archives and settings
         if (archives) localStorage.setItem(this.KEYS.SEMESTER_ARCHIVES, archives);
+        if (settings) localStorage.setItem(this.KEYS.SETTINGS, settings);
         this.init();
     },
 
