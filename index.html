@@ -9,6 +9,19 @@
         rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="icon" href="assets/logo.png" type="image/png">
+    
+    <!-- Mobile Drag-and-Drop Polyfill -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
+    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
+    <script>
+        // Initialize the polyfill so touch events act like mouse drags
+        window.addEventListener('touchmove', function() {}, {passive: false});
+        MobileDragDrop.polyfill({
+            // This keeps the screen from scrolling while you drag a subject
+            holdToDrag: 300, // Requires the user to hold the subject for 300ms before dragging
+            dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
+        });
+    </script>
 </head>
 
 <body>
@@ -481,6 +494,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="js/firebase-config.js"></script>
+
+    <!-- Tesseract.js -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <!-- App Scripts -->
     <script src="js/storage.js"></script>

@@ -20,16 +20,20 @@ const TimetableManager = {
     addClass(day, subjectId, startTime, endTime = null) {
         if (!subjectId || !startTime) return false;
 
-        // Validate time format
         const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
         if (!timeRegex.test(startTime)) return false;
 
-        StorageManager.addToTimetable(day, {
+        const newSlot = {
+            id: StorageManager.generateId(), 
             subjectId,
             time: startTime,
             endTime
-        });
-        return true;
+        };
+
+        StorageManager.addToTimetable(day, newSlot);
+        
+        // 🛡️ CRITICAL: Return the ID so the AI can attach the room number note!
+        return newSlot.id; 
     },
 
     /**

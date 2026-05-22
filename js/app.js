@@ -225,14 +225,20 @@ const App = {
       <h3 style="margin-bottom: var(--space-md)">Manage Subjects (Drag & Drop to Schedule)</h3>
       <div id="manage-subjects-list" style="display: flex; flex-wrap: wrap; gap: var(--space-md);">
         ${subjects.map(sub => `
-          <div class="manage-subject-item" draggable="true" ondragstart="App.handleDragStart(event, '${sub.id}')" style="background: var(--bg-glass); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-full); display: flex; align-items: center; gap: var(--space-sm); border: 1px solid var(--border-color); cursor: grab;">
-            <span class="subject-color-dot" style="width: 10px; height: 10px; border-radius: 50%; background:${sub.color}"></span>
-            <span>${sub.name}</span>
-            <button onclick="App.deleteSubject('${sub.id}')" style="background: none; border: none; color: var(--color-danger); cursor: pointer; margin-left: var(--space-sm);">×</button>
+          <div id="subject-${sub.id}" class="manage-subject-item" draggable="true" ondragstart="App.handleDragStart(event, '${sub.id}')" ondragover="event.preventDefault(); event.dataTransfer.dropEffect = 'move';" ondragenter="event.preventDefault();" ondrop="App.handleSubjectDrop(event, '${sub.id}')" ondragend="App.handleDragEnd(event, '${sub.id}')" style="background: var(--bg-glass); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-full); display: flex; align-items: center; gap: var(--space-sm); border: 1px solid var(--border-color); cursor: grab !important; user-select: auto !important; -webkit-user-select: auto !important;">
+            <span class="subject-color-dot" style="width: 10px; height: 10px; border-radius: 50%; background:${sub.color}; pointer-events: none;"></span>
+            <span style="pointer-events: none;">${sub.name}</span>
+            <button onclick="App.deleteSubject('${sub.id}')" style="background: none; border: none; color: var(--color-danger); cursor: pointer; margin-left: var(--space-sm); pointer-events: none;" class="subject-delete-btn">×</button>
           </div>
         `).join('')}
       </div>
     `;
+    // Re-enable delete buttons pointer-events after render
+    document.querySelectorAll('.subject-delete-btn').forEach(btn => {
+        btn.style.pointerEvents = 'auto';
+        btn.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); });
+        btn.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); const parentDiv = btn.closest('.manage-subject-item'); if (parentDiv && parentDiv.ondrop) { parentDiv.ondrop(e); } });
+    });
     },
 
     // ========================================
@@ -241,7 +247,9 @@ const App = {
 
     handleDragStart(e, subjectId) {
         e.dataTransfer.setData('text/plain', subjectId);
-        e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.setData('application/subject-id', subjectId);
+        e.dataTransfer.effectAllowed = 'all';
+        App._draggedIdFallback = subjectId;
     },
 
     handleDragOver(e) {
@@ -257,10 +265,148 @@ const App = {
     handleDrop(e, day) {
         e.preventDefault();
         e.currentTarget.classList.remove('drag-over');
-        const subjectId = e.dataTransfer.getData('text/plain');
+        let subjectId = e.dataTransfer.getData('text/plain');
+        if (!subjectId && App._draggedIdFallback) subjectId = App._draggedIdFallback;
         if (subjectId) {
             this.openAddSlotModal(day, subjectId);
         }
+    },
+
+    handleDragEnd(event, draggedSubjectId) {
+        event.currentTarget.style.opacity = '1';
+    },
+
+    handleSubjectDrop(event, targetSubjectId) {
+        event.preventDefault(); 
+        event.stopPropagation(); 
+
+        // Try multiple sources to get the dragged ID
+        let draggedSubjectId = event.dataTransfer.getData('application/subject-id')
+            || event.dataTransfer.getData('text/plain')
+            || App._draggedIdFallback;
+
+        if (!draggedSubjectId || String(draggedSubjectId) === String(targetSubjectId)) {
+            return;
+        }
+
+        let draggedSub, targetSub, subjects;
+
+        // Quick Setup mode: only if modal is actively open
+        if (this._quickSetupState && document.querySelector('.modal-overlay.active')) {
+            const dragIdx = parseInt(draggedSubjectId);
+            const targetIdx = parseInt(targetSubjectId);
+            
+            draggedSub = this._quickSetupState.subjects[dragIdx];
+            targetSub = this._quickSetupState.subjects[targetIdx];
+
+            if (!draggedSub || !targetSub) {
+                console.warn('Merge aborted: draggedSub or targetSub not found', {dragIdx, targetIdx, total: this._quickSetupState.subjects.length});
+                return;
+            }
+
+            let suggestedName = targetSub.name.split('-')[0].replace('Lab', '').trim();
+            const finalMergedName = prompt(
+                `Merging:\n1. ${draggedSub.name}\n2. ${targetSub.name}\n\nEnter the new combined name:`, 
+                suggestedName 
+            );
+
+            if (!finalMergedName) return;
+
+            // Log state BEFORE merge
+            console.log('=== MERGE START ===');
+            console.log('Drag:', dragIdx, draggedSub.name, '→ Target:', targetIdx, targetSub.name);
+            console.log('Slots BEFORE:', JSON.parse(JSON.stringify(this._quickSetupState.slots)));
+
+            this._quickSetupState.subjects[targetIdx].name = finalMergedName;
+            
+            // Compute the new target index after the splice
+            const newTargetIdx = targetIdx > dragIdx ? targetIdx - 1 : targetIdx;
+
+            // Rewire ALL slots across ALL days
+            Object.keys(this._quickSetupState.slots).forEach(day => {
+                if (this._quickSetupState.slots[day]) {
+                    this._quickSetupState.slots[day].forEach(slot => {
+                        if (slot.subjectIdx === dragIdx) {
+                            slot.subjectIdx = targetIdx;
+                        }
+                        if (slot.subjectIdx > dragIdx) {
+                            slot.subjectIdx--;
+                        }
+                    });
+                }
+            });
+
+            this._quickSetupState.subjects.splice(dragIdx, 1);
+
+            // Log state AFTER merge
+            console.log('Subjects AFTER:', this._quickSetupState.subjects.map((s,i) => i + ': ' + s.name));
+            console.log('Slots AFTER:', JSON.parse(JSON.stringify(this._quickSetupState.slots)));
+            console.log('=== MERGE END ===');
+
+            this.renderQuickSetup();
+            
+        } else {
+            // Dashboard / Manage Subjects mode
+            subjects = StorageManager.getSubjects();
+            draggedSub = subjects.find(s => String(s.id) === String(draggedSubjectId));
+            targetSub = subjects.find(s => String(s.id) === String(targetSubjectId));
+
+            if (!draggedSub || !targetSub) return;
+
+            let suggestedName = targetSub.name.split('-')[0].replace('Lab', '').trim();
+            const finalMergedName = prompt(
+                `Merging:\n1. ${draggedSub.name}\n2. ${targetSub.name}\n\nEnter the new combined name:`, 
+                suggestedName 
+            );
+
+            if (!finalMergedName) return;
+            this.executeMerge(draggedSubjectId, targetSubjectId, finalMergedName); 
+        }
+    },
+
+    executeMerge(draggedId, targetId, finalName) {
+        const subjects = StorageManager.getSubjects();
+        const draggedSub = subjects.find(s => String(s.id) === String(draggedId));
+        const targetSub = subjects.find(s => String(s.id) === String(targetId));
+
+        if (!draggedSub || !targetSub) return;
+
+        StorageManager.updateSubject(targetSub.id, {
+            name: finalName,
+            attended: targetSub.attended + draggedSub.attended,
+            totalHeld: targetSub.totalHeld + draggedSub.totalHeld,
+            cancelled: targetSub.cancelled + draggedSub.cancelled
+        });
+
+        const history = StorageManager.getHistory();
+        const updatedHistory = history.map(entry => {
+            if (String(entry.subjectId) === String(draggedId)) {
+                return { ...entry, subjectId: targetSub.id };
+            }
+            return entry;
+        });
+        localStorage.setItem(StorageManager.KEYS.HISTORY, JSON.stringify(updatedHistory));
+
+        const timetable = StorageManager.getTimetable();
+        let hasChanges = false;
+        
+        Object.keys(timetable).forEach(day => {
+            timetable[day] = timetable[day].map(slot => {
+                if (String(slot.subjectId) === String(draggedId)) {
+                    hasChanges = true;
+                    return { ...slot, subjectId: targetSub.id };
+                }
+                return slot;
+            });
+        });
+        
+        if (hasChanges) {
+            StorageManager.setTimetable(timetable);
+        }
+
+        StorageManager.deleteSubject(draggedId);
+        this.renderTimetablePage();
+        DashboardUI.init();
     },
 
     // ========================================
@@ -1382,6 +1528,164 @@ const App = {
     _quickSetupColors: ['#6366f1', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#14b8a6', '#f97316', '#84cc16'],
     _quickSetupDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
 
+    async handleTimetableUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const statusText = document.getElementById('ocrStatus');
+        if (statusText) statusText.innerText = "Vision AI is analyzing the grid... 🤖";
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            const base64Image = reader.result.split(',')[1];
+            
+            const API_KEY = "AIzaSyAftKCmFtgUHtvBWrAagvl9WL-Xz1gDyUo";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+            
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: "Extract the class schedule from this timetable image. Return ONLY a valid JSON array of objects. Do not include markdown formatting or backticks. Schema: [{ 'day': 'monday', 'subject': 'Electronics Devices', 'startTime': '09:30', 'endTime': '10:30', 'room': 'KE-03-PP' }]. CRITICAL RULES: 1) Each column in the timetable represents a 1-hour slot. If a subject spans multiple columns (e.g. 2 hours from 09:30 to 11:30), you MUST output SEPARATE entries for each hour (e.g. one at 09:30-10:30 and another at 10:30-11:30) with the SAME subject name. 2) If a cell contains '/' between two subject names (e.g. 'JOB READINESS/ENGLISH'), use ONLY the first name before the '/' (e.g. 'JOB READINESS'). 3) If a cell contains '&' in the subject name (e.g. 'Differential Equation & Linear Algebra'), keep it as ONE subject — do NOT split it. 4) Extract the room number or location and format it cleanly. 5) Convert all times to 24-hour HH:MM format (e.g. 9.30AM -> 09:30, 1.30PM -> 13:30). 6) Ignore breaks, lunches, and empty slots." },
+                        { inline_data: { mime_type: file.type, data: base64Image } }
+                    ]
+                }]
+            };
+
+            const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-3.5-flash'];
+            let success = false;
+            let data;
+            let lastErrorMsg = "";
+
+            for (const model of models) {
+                if (success) break;
+                const modelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+                
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        if (statusText) statusText.innerText = `Analyzing with ${model}...${attempt > 1 ? ' (retry)' : ''} 🤖`;
+                        
+                        const response = await fetch(modelUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.ok) {
+                            data = await response.json();
+                            success = true;
+                            break;
+                        }
+
+                        const errBody = await response.text();
+                        console.warn(`${model} attempt ${attempt} failed (${response.status}):`, errBody);
+                        lastErrorMsg = `HTTP ${response.status}: ${errBody.substring(0, 150)}`;
+
+                        if (response.status === 503) {
+                            await new Promise(r => setTimeout(r, 3000 * attempt));
+                            continue; // retry same model
+                        }
+                        if (response.status === 429) {
+                            break; // skip to next model
+                        }
+                        // Other errors (404, 400, etc.) — skip to next model
+                        break;
+                    } catch (error) {
+                        console.warn(`${model} attempt ${attempt} network error:`, error);
+                        lastErrorMsg = `Network Error: ${error.message}`;
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+                }
+            }
+
+            if (!success || !data) {
+                if (statusText) {
+                    statusText.innerHTML = `All models failed. ❌<br><span style="font-size:12px; color:#ff6b6b;">Last Error: ${lastErrorMsg}</span>`;
+                }
+                return;
+            }
+
+            try {
+                const rawJsonString = data.candidates[0].content.parts[0].text;
+                const cleanJsonString = rawJsonString.replace(/```json/g, '').replace(/```/g, '').trim();
+                const schedule = JSON.parse(cleanJsonString);
+                this.parseAndInjectTimetable(schedule);
+                if (statusText) statusText.innerText = "Schedule successfully extracted! ✅";
+            } catch (err) {
+                if (statusText) statusText.innerText = "Failed to parse AI output. ❌";
+                console.error("Parse Error:", err);
+            }
+        };
+    },
+
+    parseAndInjectTimetable(schedule) {
+        if (!this._quickSetupState) return;
+        
+        let newSubjects = [...this._quickSetupState.subjects];
+        let newSlots = {};
+        // Deep copy existing slots
+        Object.keys(this._quickSetupState.slots).forEach(day => {
+            newSlots[day] = [...(this._quickSetupState.slots[day] || [])];
+        });
+        
+        // Helper: convert "HH:MM" to minutes
+        const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+        // Helper: convert minutes back to "HH:MM"
+        const toTime = m => { const h = Math.floor(m / 60); const min = m % 60; return String(h).padStart(2,'0') + ':' + String(min).padStart(2,'0'); };
+
+        schedule.forEach(entry => {
+            const day = entry.day.toLowerCase();
+            const room = entry.room || '';
+            let subjName = entry.subject;
+            
+            // Support both 'time' (old schema) and 'startTime' (new schema)
+            const startTimeStr = entry.startTime || entry.time;
+            const endTimeStr = entry.endTime || '';
+            
+            if (!startTimeStr || !day) return;
+
+            let subjectIdx = newSubjects.findIndex(s => s.name.toLowerCase() === subjName.toLowerCase());
+            if (subjectIdx === -1) {
+                const color = this._quickSetupColors[newSubjects.length % this._quickSetupColors.length];
+                newSubjects.push({ name: subjName, color: color });
+                subjectIdx = newSubjects.length - 1;
+            }
+            
+            if (!newSlots[day]) newSlots[day] = [];
+            
+            // Auto-split multi-hour entries into individual 1-hour slots
+            const startMin = toMin(startTimeStr);
+            let endMin = endTimeStr ? toMin(endTimeStr) : startMin + 60;
+            
+            // If endTime <= startTime, treat as a single 1-hour slot
+            if (endMin <= startMin) endMin = startMin + 60;
+
+            const durationHours = Math.round((endMin - startMin) / 60);
+            
+            if (durationHours > 1) {
+                // Split into individual 1-hour slots
+                for (let i = 0; i < durationHours; i++) {
+                    const slotStart = toTime(startMin + i * 60);
+                    const slotEnd = toTime(startMin + (i + 1) * 60);
+                    const exists = newSlots[day].find(s => s.startTime === slotStart && s.subjectIdx === subjectIdx);
+                    if (!exists) {
+                        newSlots[day].push({ subjectIdx, startTime: slotStart, endTime: slotEnd, room: room });
+                    }
+                }
+            } else {
+                // Single 1-hour slot
+                const exists = newSlots[day].find(s => s.startTime === startTimeStr && s.subjectIdx === subjectIdx);
+                if (!exists) {
+                    newSlots[day].push({ subjectIdx, startTime: startTimeStr, endTime: endTimeStr || '', room: room });
+                }
+            }
+        });
+        
+        this._quickSetupState.subjects = newSubjects;
+        this._quickSetupState.slots = newSlots;
+        this.renderQuickSetup();
+    },
+
     openQuickSetupWizard() {
         this._quickSetupState = {
             step: 1,
@@ -1429,14 +1733,27 @@ const App = {
             ).join('');
 
             const chips = state.subjects.map((s, i) =>
-                `<div class="qs-chip">
-                    <span class="qs-chip-color" style="background:${s.color}"></span>
-                    <span>${s.name}</span>
-                    <button class="qs-chip-del" onclick="App.quickSetupRemoveSubject(${i})">×</button>
+                `<div id="subject-${s.id || i}" class="qs-chip" draggable="true" ondragstart="App.handleDragStart(event, '${s.id || i}')" ondragover="event.preventDefault(); event.dataTransfer.dropEffect = 'move';" ondragenter="event.preventDefault();" ondrop="App.handleSubjectDrop(event, '${s.id || i}')" ondragend="App.handleDragEnd(event, '${s.id || i}')" style="cursor: grab !important; user-select: auto !important; -webkit-user-select: auto !important;">
+                    <span class="qs-chip-color" style="background:${s.color}; pointer-events: none;"></span>
+                    <span style="pointer-events: none;">${s.name}</span>
+                    <button class="qs-chip-del" onclick="App.quickSetupRemoveSubject(${i})" style="pointer-events: none;">×</button>
                 </div>`
             ).join('');
 
+
             bodyHtml = `
+              <div class="ocr-scanner-container" style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
+                  <label for="timetableCamera" style="background: linear-gradient(135deg, #6200EA 0%, #B388FF 100%); color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
+                      📸 Scan Paper
+                  </label>
+                  <input type="file" id="timetableCamera" accept="image/*" capture="environment" style="display: none;" onchange="App.handleTimetableUpload(event)">
+              
+                  <label for="timetableGallery" style="background: #252529; color: #FFFFFF; border: 1px solid #B388FF; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
+                      🖼️ Upload Image
+                  </label>
+                  <input type="file" id="timetableGallery" accept="image/*" style="display: none;" onchange="App.handleTimetableUpload(event)">
+              </div>
+              <p id="ocrStatus" style="text-align: center; color: #A0A0A5; font-size: 14px; margin-top: 10px;"></p>
               <div class="qs-subject-form">
                 <div class="form-group" style="flex:1">
                   <label class="form-label">Subject Name</label>
@@ -1564,6 +1881,19 @@ const App = {
 
         modalBody.innerHTML = stepperHtml + bodyHtml + footerHtml;
 
+        // Re-enable delete buttons and forward drag events on qs-chips
+        if (step === 1) {
+            document.querySelectorAll('.qs-chip .qs-chip-del').forEach(btn => {
+                btn.style.pointerEvents = 'auto';
+                btn.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); });
+                btn.addEventListener('drop', e => {
+                    e.preventDefault(); e.stopPropagation();
+                    const parentDiv = btn.closest('.qs-chip');
+                    if (parentDiv && parentDiv.ondrop) parentDiv.ondrop(e);
+                });
+            });
+        }
+
         // Auto-focus the subject name input on step 1
         if (step === 1) {
             setTimeout(() => {
@@ -1681,7 +2011,10 @@ const App = {
                 if (slot.subjectIdx === -1) return; // skip unselected slots
                 const realSubjectId = idMap[slot.subjectIdx];
                 if (realSubjectId && slot.startTime) {
-                    TimetableManager.addClass(day, realSubjectId, slot.startTime, slot.endTime || null);
+                    const slotId = TimetableManager.addClass(day, realSubjectId, slot.startTime, slot.endTime || null);
+                    if (slotId && slot.room) {
+                        StorageManager.setNote(slotId, slot.room);
+                    }
                 }
             });
         });

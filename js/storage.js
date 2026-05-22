@@ -200,7 +200,7 @@ const StorageManager = {
             timetable[day] = [];
         }
         timetable[day].push({
-            id: this.generateId(),
+            id: classData.id || this.generateId(),
             subjectId: classData.subjectId,
             time: classData.time,
             endTime: classData.endTime || null
