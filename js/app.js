@@ -233,12 +233,12 @@ const App = {
         `).join('')}
       </div>
     `;
-    // Re-enable delete buttons pointer-events after render
-    document.querySelectorAll('.subject-delete-btn').forEach(btn => {
-        btn.style.pointerEvents = 'auto';
-        btn.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); });
-        btn.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); const parentDiv = btn.closest('.manage-subject-item'); if (parentDiv && parentDiv.ondrop) { parentDiv.ondrop(e); } });
-    });
+        // Re-enable delete buttons pointer-events after render
+        document.querySelectorAll('.subject-delete-btn').forEach(btn => {
+            btn.style.pointerEvents = 'auto';
+            btn.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); });
+            btn.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); const parentDiv = btn.closest('.manage-subject-item'); if (parentDiv && parentDiv.ondrop) { parentDiv.ondrop(e); } });
+        });
     },
 
     // ========================================
@@ -277,8 +277,8 @@ const App = {
     },
 
     handleSubjectDrop(event, targetSubjectId) {
-        event.preventDefault(); 
-        event.stopPropagation(); 
+        event.preventDefault();
+        event.stopPropagation();
 
         // Try multiple sources to get the dragged ID
         let draggedSubjectId = event.dataTransfer.getData('application/subject-id')
@@ -295,19 +295,19 @@ const App = {
         if (this._quickSetupState && document.querySelector('.modal-overlay.active')) {
             const dragIdx = parseInt(draggedSubjectId);
             const targetIdx = parseInt(targetSubjectId);
-            
+
             draggedSub = this._quickSetupState.subjects[dragIdx];
             targetSub = this._quickSetupState.subjects[targetIdx];
 
             if (!draggedSub || !targetSub) {
-                console.warn('Merge aborted: draggedSub or targetSub not found', {dragIdx, targetIdx, total: this._quickSetupState.subjects.length});
+                console.warn('Merge aborted: draggedSub or targetSub not found', { dragIdx, targetIdx, total: this._quickSetupState.subjects.length });
                 return;
             }
 
             let suggestedName = targetSub.name.split('-')[0].replace('Lab', '').trim();
             const finalMergedName = prompt(
-                `Merging:\n1. ${draggedSub.name}\n2. ${targetSub.name}\n\nEnter the new combined name:`, 
-                suggestedName 
+                `Merging:\n1. ${draggedSub.name}\n2. ${targetSub.name}\n\nEnter the new combined name:`,
+                suggestedName
             );
 
             if (!finalMergedName) return;
@@ -318,7 +318,7 @@ const App = {
             console.log('Slots BEFORE:', JSON.parse(JSON.stringify(this._quickSetupState.slots)));
 
             this._quickSetupState.subjects[targetIdx].name = finalMergedName;
-            
+
             // Compute the new target index after the splice
             const newTargetIdx = targetIdx > dragIdx ? targetIdx - 1 : targetIdx;
 
@@ -339,12 +339,12 @@ const App = {
             this._quickSetupState.subjects.splice(dragIdx, 1);
 
             // Log state AFTER merge
-            console.log('Subjects AFTER:', this._quickSetupState.subjects.map((s,i) => i + ': ' + s.name));
+            console.log('Subjects AFTER:', this._quickSetupState.subjects.map((s, i) => i + ': ' + s.name));
             console.log('Slots AFTER:', JSON.parse(JSON.stringify(this._quickSetupState.slots)));
             console.log('=== MERGE END ===');
 
             this.renderQuickSetup();
-            
+
         } else {
             // Dashboard / Manage Subjects mode
             subjects = StorageManager.getSubjects();
@@ -355,12 +355,12 @@ const App = {
 
             let suggestedName = targetSub.name.split('-')[0].replace('Lab', '').trim();
             const finalMergedName = prompt(
-                `Merging:\n1. ${draggedSub.name}\n2. ${targetSub.name}\n\nEnter the new combined name:`, 
-                suggestedName 
+                `Merging:\n1. ${draggedSub.name}\n2. ${targetSub.name}\n\nEnter the new combined name:`,
+                suggestedName
             );
 
             if (!finalMergedName) return;
-            this.executeMerge(draggedSubjectId, targetSubjectId, finalMergedName); 
+            this.executeMerge(draggedSubjectId, targetSubjectId, finalMergedName);
         }
     },
 
@@ -389,7 +389,7 @@ const App = {
 
         const timetable = StorageManager.getTimetable();
         let hasChanges = false;
-        
+
         Object.keys(timetable).forEach(day => {
             timetable[day] = timetable[day].map(slot => {
                 if (String(slot.subjectId) === String(draggedId)) {
@@ -399,7 +399,7 @@ const App = {
                 return slot;
             });
         });
-        
+
         if (hasChanges) {
             StorageManager.setTimetable(timetable);
         }
@@ -1113,9 +1113,11 @@ const App = {
         // Archive and wipe
         StorageManager.archiveCurrentSemester(name);
 
-        // Firestore sync handled automatically by the auto-sync patches
-        // (archiveCurrentSemester → setSemesterArchives + clearAllData → init → all setters are patched)
-        // Plus location.reload() below triggers a fresh login sync anyway.
+        // Force an immediate Firestore push BEFORE reload — otherwise the debounced
+        // sync won't fire in time, and the old timetable gets pulled back from Firestore
+        if (AuthManager.currentUser) {
+            await FirestoreSync.pushAll(AuthManager.currentUser.uid);
+        }
 
         // Close modal and reload UI
         document.querySelector('.modal-overlay').classList.remove('active');
@@ -1539,109 +1541,75 @@ const App = {
         reader.readAsDataURL(file);
         reader.onload = async () => {
             const base64Image = reader.result.split(',')[1];
-            
-            const API_KEY = "AIzaSyAftKCmFtgUHtvBWrAagvl9WL-Xz1gDyUo";
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
-            
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: "Extract the class schedule from this timetable image. Return ONLY a valid JSON array of objects. Do not include markdown formatting or backticks. Schema: [{ 'day': 'monday', 'subject': 'Electronics Devices', 'startTime': '09:30', 'endTime': '10:30', 'room': 'KE-03-PP' }]. CRITICAL RULES: 1) Each column in the timetable represents a 1-hour slot. If a subject spans multiple columns (e.g. 2 hours from 09:30 to 11:30), you MUST output SEPARATE entries for each hour (e.g. one at 09:30-10:30 and another at 10:30-11:30) with the SAME subject name. 2) If a cell contains '/' between two subject names (e.g. 'JOB READINESS/ENGLISH'), use ONLY the first name before the '/' (e.g. 'JOB READINESS'). 3) If a cell contains '&' in the subject name (e.g. 'Differential Equation & Linear Algebra'), keep it as ONE subject — do NOT split it. 4) Extract the room number or location and format it cleanly. 5) Convert all times to 24-hour HH:MM format (e.g. 9.30AM -> 09:30, 1.30PM -> 13:30). 6) Ignore breaks, lunches, and empty slots." },
-                        { inline_data: { mime_type: file.type, data: base64Image } }
-                    ]
-                }]
-            };
-
-            const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-3.5-flash'];
-            let success = false;
-            let data;
-            let lastErrorMsg = "";
-
-            for (const model of models) {
-                if (success) break;
-                const modelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
-                
-                for (let attempt = 1; attempt <= 2; attempt++) {
-                    try {
-                        if (statusText) statusText.innerText = `Analyzing with ${model}...${attempt > 1 ? ' (retry)' : ''} 🤖`;
-                        
-                        const response = await fetch(modelUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-
-                        if (response.ok) {
-                            data = await response.json();
-                            success = true;
-                            break;
-                        }
-
-                        const errBody = await response.text();
-                        console.warn(`${model} attempt ${attempt} failed (${response.status}):`, errBody);
-                        lastErrorMsg = `HTTP ${response.status}: ${errBody.substring(0, 150)}`;
-
-                        if (response.status === 503) {
-                            await new Promise(r => setTimeout(r, 3000 * attempt));
-                            continue; // retry same model
-                        }
-                        if (response.status === 429) {
-                            break; // skip to next model
-                        }
-                        // Other errors (404, 400, etc.) — skip to next model
-                        break;
-                    } catch (error) {
-                        console.warn(`${model} attempt ${attempt} network error:`, error);
-                        lastErrorMsg = `Network Error: ${error.message}`;
-                        await new Promise(r => setTimeout(r, 2000));
-                    }
-                }
-            }
-
-            if (!success || !data) {
-                if (statusText) {
-                    statusText.innerHTML = `All models failed. ❌<br><span style="font-size:12px; color:#ff6b6b;">Last Error: ${lastErrorMsg}</span>`;
-                }
-                return;
-            }
 
             try {
-                const rawJsonString = data.candidates[0].content.parts[0].text;
-                const cleanJsonString = rawJsonString.replace(/```json/g, '').replace(/```/g, '').trim();
-                const schedule = JSON.parse(cleanJsonString);
+                if (statusText) statusText.innerText = "AttenDO AI is analysing... 🤖";
+
+                // Get Firebase auth token for the proxy
+                const currentUser = firebase.auth().currentUser;
+                if (!currentUser) {
+                    if (statusText) statusText.innerText = "You must be logged in to use this feature. ❌";
+                    return;
+                }
+                const token = await currentUser.getIdToken();
+
+                // Call the Netlify serverless function (API key is safe on the server)
+                const response = await fetch('/.netlify/functions/parseTimetable', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ base64Image, mimeType: file.type })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    const errMsg = result.error || `Server error (${response.status})`;
+                    if (statusText) {
+                        statusText.innerHTML = `Analysis failed. ❌<br><span style="font-size:12px; color:#ff6b6b;">${errMsg}</span>`;
+                    }
+                    return;
+                }
+
+                const schedule = result.schedule;
                 this.parseAndInjectTimetable(schedule);
                 if (statusText) statusText.innerText = "Schedule successfully extracted! ✅";
+
             } catch (err) {
-                if (statusText) statusText.innerText = "Failed to parse AI output. ❌";
-                console.error("Parse Error:", err);
+                console.error("Timetable upload error:", err);
+                if (statusText) {
+                    statusText.innerHTML = `Failed to analyze timetable. ❌<br><span style="font-size:12px; color:#ff6b6b;">${err.message}</span>`;
+                }
             }
         };
     },
 
     parseAndInjectTimetable(schedule) {
         if (!this._quickSetupState) return;
-        
+
         let newSubjects = [...this._quickSetupState.subjects];
         let newSlots = {};
         // Deep copy existing slots
         Object.keys(this._quickSetupState.slots).forEach(day => {
             newSlots[day] = [...(this._quickSetupState.slots[day] || [])];
         });
-        
+
         // Helper: convert "HH:MM" to minutes
         const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
         // Helper: convert minutes back to "HH:MM"
-        const toTime = m => { const h = Math.floor(m / 60); const min = m % 60; return String(h).padStart(2,'0') + ':' + String(min).padStart(2,'0'); };
+        const toTime = m => { const h = Math.floor(m / 60); const min = m % 60; return String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0'); };
 
         schedule.forEach(entry => {
             const day = entry.day.toLowerCase();
             const room = entry.room || '';
             let subjName = entry.subject;
-            
+
             // Support both 'time' (old schema) and 'startTime' (new schema)
             const startTimeStr = entry.startTime || entry.time;
             const endTimeStr = entry.endTime || '';
-            
+
             if (!startTimeStr || !day) return;
 
             let subjectIdx = newSubjects.findIndex(s => s.name.toLowerCase() === subjName.toLowerCase());
@@ -1650,18 +1618,18 @@ const App = {
                 newSubjects.push({ name: subjName, color: color });
                 subjectIdx = newSubjects.length - 1;
             }
-            
+
             if (!newSlots[day]) newSlots[day] = [];
-            
+
             // Auto-split multi-hour entries into individual 1-hour slots
             const startMin = toMin(startTimeStr);
             let endMin = endTimeStr ? toMin(endTimeStr) : startMin + 60;
-            
+
             // If endTime <= startTime, treat as a single 1-hour slot
             if (endMin <= startMin) endMin = startMin + 60;
 
             const durationHours = Math.round((endMin - startMin) / 60);
-            
+
             if (durationHours > 1) {
                 // Split into individual 1-hour slots
                 for (let i = 0; i < durationHours; i++) {
@@ -1680,7 +1648,7 @@ const App = {
                 }
             }
         });
-        
+
         this._quickSetupState.subjects = newSubjects;
         this._quickSetupState.slots = newSlots;
         this.renderQuickSetup();

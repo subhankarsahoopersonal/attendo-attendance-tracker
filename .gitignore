@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+package-lock.json
 
 # IDE
 .vscode/
@@ -11,6 +12,13 @@ node_modules/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Secrets
+.env
+
+# Netlify
+.netlify/
+netlify/functions/node_modules/
 
 # Gemini
 .gemini/
