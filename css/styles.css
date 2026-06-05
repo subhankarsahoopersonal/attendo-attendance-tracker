@@ -4451,7 +4451,7 @@ select.form-input option {
 }
 
 /* ========================================
-   AI Scanner Animation
+   AI Scanner Animation (Ultra Premium)
    ======================================== */
 .ocr-scanner-animation {
     display: flex;
@@ -4459,71 +4459,106 @@ select.form-input option {
     align-items: center;
     justify-content: center;
     padding: var(--space-xl) 0;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-lg);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(10px);
 }
 
 .ocr-scanner-animation.active {
     opacity: 1;
+    transform: translateY(0);
 }
 
-.ai-brain-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    animation: float-brain 3s ease-in-out infinite, glow-brain 2s ease-in-out infinite;
-    filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.6));
-}
-
-.scanner-beam-container {
-    width: 200px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+.ai-premium-scanner {
     position: relative;
-    overflow: hidden;
-    margin-bottom: 16px;
+    width: 130px;
+    height: 130px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.scanner-beam {
+.ai-scanner-border {
     position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 40px;
-    background: linear-gradient(90deg, transparent, #a855f7, #6366f1, transparent);
-    animation: scan-beam 1.5s linear infinite;
-    box-shadow: 0 0 10px #a855f7, 0 0 20px #6366f1;
+    inset: 0;
+    border-radius: 50%;
+    padding: 3px;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(168, 85, 247, 0.1) 60deg, #a855f7 120deg, #6366f1 240deg, transparent 360deg);
+    animation: spin-border 2s linear infinite;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+
+.ai-scanner-content {
+    width: 110px;
+    height: 110px;
+    background: rgba(20, 20, 30, 0.6);
+    border-radius: 50%;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.2);
+    z-index: 2;
+}
+
+.ai-logo-pulse {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    animation: pulse-logo 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.6));
+}
+
+.ai-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    z-index: 1;
+}
+
+.ai-ripple-1 {
+    animation: ripple-out 2.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+}
+
+.ai-ripple-2 {
+    animation: ripple-out 2.5s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+    animation-delay: 1.25s;
 }
 
 .ocr-status-text {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: 1px;
-    background: linear-gradient(90deg, #a855f7, #6366f1, #a855f7);
-    background-size: 200% auto;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, #a855f7, #6366f1, #3b82f6, #a855f7);
+    background-size: 300% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: gradient-text 2s linear infinite;
+    animation: gradient-text 3s linear infinite;
+    text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
 }
 
-@keyframes float-brain {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+@keyframes spin-border {
+    100% { transform: rotate(360deg); }
 }
 
-@keyframes glow-brain {
-    0%, 100% { filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.4)); }
-    50% { filter: drop-shadow(0 0 25px rgba(139, 92, 246, 0.9)); }
+@keyframes pulse-logo {
+    0%, 100% { transform: scale(0.95); opacity: 0.8; filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.4)); }
+    50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.9)); }
 }
 
-@keyframes scan-beam {
-    0% { left: -40px; }
-    100% { left: 100%; }
+@keyframes ripple-out {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1.8); opacity: 0; }
 }
 
 @keyframes gradient-text {
     0% { background-position: 0% center; }
-    100% { background-position: 200% center; }
+    100% { background-position: 300% center; }
 }

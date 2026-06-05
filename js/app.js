@@ -1810,9 +1810,13 @@ const App = {
               </div>
 
               <div id="ocrStatusContainer" class="ocr-scanner-animation" style="display: none;">
-                  <div class="ai-brain-icon">🧠</div>
-                  <div class="scanner-beam-container">
-                      <div class="scanner-beam"></div>
+                  <div class="ai-premium-scanner">
+                      <div class="ai-scanner-border"></div>
+                      <div class="ai-scanner-content">
+                          <img src="assets/logo.png" class="ai-logo-pulse" alt="AttenDO Logo">
+                      </div>
+                      <div class="ai-ripple ai-ripple-1"></div>
+                      <div class="ai-ripple ai-ripple-2"></div>
                   </div>
                   <div id="ocrStatus" class="ocr-status-text">Preparing scanner...</div>
               </div>
