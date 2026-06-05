@@ -1,0 +1,25 @@
+{
+  "name": "bunk-manager",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/subhankarsahoopersonal/attendo-attendance-tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/subhankarsahoopersonal/attendo-attendance-tracker/issues"
+  },
+  "homepage": "https://github.com/subhankarsahoopersonal/attendo-attendance-tracker#readme",
+  "dependencies": {
+    "firebase-admin": "^12.1.1",
+    "node-fetch": "^2.7.0"
+  }
+}
