@@ -1535,7 +1535,7 @@ const App = {
         if (!file) return;
 
         const statusText = document.getElementById('ocrStatus');
-        if (statusText) statusText.innerText = "Vision AI is analyzing the grid... 🤖";
+        if (statusText) statusText.innerText = "AttenDO AI is analysing... 🤖";
 
         const reader = new FileReader();
         reader.readAsDataURL(file);
