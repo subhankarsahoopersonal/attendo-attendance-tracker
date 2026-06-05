@@ -22,3 +22,7 @@ netlify/functions/node_modules/
 
 # Gemini
 .gemini/
+
+# Local dev tools
+local-server.js
+test-api.js

@@ -4,15 +4,14 @@
  * Secure proxy for the Gemini Vision API.
  * - Verifies Firebase auth tokens (only logged-in users can call)
  * - Holds the GEMINI_API_KEY server-side (never exposed to the browser)
- * - Retries across multiple Gemini models for resilience
+ * - Retries across proven Gemini models with smart backoff
+ * - Robust JSON parsing with fallback regex extraction
  */
 
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
 // ── Firebase Admin initialization ──────────────────────────────────
-// Netlify is NOT part of GCP, so we must provide explicit credentials.
-// The service account JSON is stored as a base64-encoded env var.
 if (!admin.apps.length) {
     const serviceAccount = JSON.parse(
         Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString()
@@ -23,12 +22,15 @@ if (!admin.apps.length) {
 }
 
 // ── Constants ──────────────────────────────────────────────────────
+// Models ordered by preference — newest first, each has separate quota pools
 const GEMINI_MODELS = [
+    "gemini-3.5-flash",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
-    "gemini-flash-latest",
-    "gemini-3.5-flash",
+    "gemini-2.0-flash-lite",
 ];
+
+const MAX_RETRIES_PER_MODEL = 2;
 
 const EXTRACTION_PROMPT =
     "Extract the class schedule from this timetable image. Return ONLY a valid JSON array of objects. " +
@@ -45,6 +47,61 @@ const EXTRACTION_PROMPT =
 
 // ── Helper: sleep ──────────────────────────────────────────────────
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ── Helper: robust JSON extraction ─────────────────────────────────
+function extractScheduleJSON(rawText) {
+    // 1. Clean markdown fences
+    let cleaned = rawText
+        .replace(/```json\s*/gi, "")
+        .replace(/```\s*/g, "")
+        .trim();
+
+    // 2. Try direct parse
+    try {
+        const parsed = JSON.parse(cleaned);
+        if (Array.isArray(parsed)) return parsed;
+        // Sometimes the AI wraps in an object like { schedule: [...] }
+        if (parsed && typeof parsed === "object") {
+            const keys = Object.keys(parsed);
+            for (const key of keys) {
+                if (Array.isArray(parsed[key])) return parsed[key];
+            }
+        }
+    } catch (e) {
+        // Fall through to regex fallback
+    }
+
+    // 3. Regex fallback: find the outermost JSON array in the text
+    const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+        try {
+            const parsed = JSON.parse(arrayMatch[0]);
+            if (Array.isArray(parsed)) return parsed;
+        } catch (e) {
+            // Fall through
+        }
+    }
+
+    throw new Error("Could not extract valid JSON array from AI response");
+}
+
+// ── Helper: validate schedule shape ────────────────────────────────
+function validateSchedule(schedule) {
+    if (!Array.isArray(schedule) || schedule.length === 0) {
+        throw new Error("Schedule is empty or not an array");
+    }
+
+    // Check at least the first entry has required fields
+    const requiredFields = ["day", "subject", "startTime"];
+    const first = schedule[0];
+    for (const field of requiredFields) {
+        if (!first[field]) {
+            throw new Error(`Schedule entry missing required field: ${field}`);
+        }
+    }
+
+    return schedule;
+}
 
 // ── Helper: call Gemini API with retry & model fallback ────────────
 async function callGeminiAPI(base64Image, mimeType) {
@@ -69,8 +126,10 @@ async function callGeminiAPI(base64Image, mimeType) {
     for (const model of GEMINI_MODELS) {
         const modelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-        for (let attempt = 1; attempt <= 2; attempt++) {
+        for (let attempt = 1; attempt <= MAX_RETRIES_PER_MODEL; attempt++) {
             try {
+                console.log(`Trying ${model} (attempt ${attempt}/${MAX_RETRIES_PER_MODEL})...`);
+
                 const response = await fetch(modelUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -79,12 +138,24 @@ async function callGeminiAPI(base64Image, mimeType) {
 
                 if (response.ok) {
                     const data = await response.json();
+
+                    // Guard against empty/blocked responses
+                    if (
+                        !data.candidates ||
+                        !data.candidates[0] ||
+                        !data.candidates[0].content ||
+                        !data.candidates[0].content.parts ||
+                        !data.candidates[0].content.parts[0].text
+                    ) {
+                        lastErrorMsg = "Gemini returned empty or blocked response";
+                        console.warn(`${model} attempt ${attempt}: empty/blocked response`);
+                        await sleep(1500);
+                        continue;
+                    }
+
                     const rawText = data.candidates[0].content.parts[0].text;
-                    const cleanJson = rawText
-                        .replace(/```json/g, "")
-                        .replace(/```/g, "")
-                        .trim();
-                    return JSON.parse(cleanJson);
+                    const schedule = extractScheduleJSON(rawText);
+                    return validateSchedule(schedule);
                 }
 
                 const errBody = await response.text();
@@ -94,41 +165,46 @@ async function callGeminiAPI(base64Image, mimeType) {
                 );
                 lastErrorMsg = `HTTP ${response.status}: ${errBody.substring(0, 150)}`;
 
-                if (response.status === 503) {
-                    await sleep(3000 * attempt);
-                    continue; // retry same model
+                if (response.status === 503 || response.status === 500) {
+                    // Server overloaded — retry with backoff
+                    await sleep(1500 * attempt);
+                    continue;
                 }
                 if (response.status === 429) {
-                    break; // skip to next model
+                    // Check if quota is fully exhausted (limit: 0) vs temporary rate limit
+                    if (errBody.includes("limit: 0") || errBody.includes("exceeded your current quota")) {
+                        console.warn(`${model}: quota exhausted, skipping to next model`);
+                        break; // Skip to next model — retrying won't help
+                    }
+                    // Temporary rate limit — wait and retry
+                    await sleep(2000 * attempt);
+                    continue;
                 }
-                // Other errors (404, 400, etc.) — skip to next model
+                // Other errors (404, 400, 403) — skip to next model
                 break;
             } catch (error) {
-                console.warn(`${model} attempt ${attempt} network error:`, error.message);
-                lastErrorMsg = `Network Error: ${error.message}`;
-                await sleep(2000);
+                console.warn(`${model} attempt ${attempt} error:`, error.message);
+                lastErrorMsg = `Error: ${error.message}`;
+                await sleep(1500);
             }
         }
     }
 
-    throw new Error(`All Gemini models failed. Last error: ${lastErrorMsg}`);
+    throw new Error(`All models failed. ${lastErrorMsg}`);
 }
 
 // ── Main handler ───────────────────────────────────────────────────
 exports.handler = async (event) => {
-    // ── CORS headers (allow your domain + localhost dev) ────────
     const headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
     };
 
-    // Handle preflight
     if (event.httpMethod === "OPTIONS") {
         return { statusCode: 204, headers, body: "" };
     }
 
-    // Only accept POST
     if (event.httpMethod !== "POST") {
         return {
             statusCode: 405,
