@@ -1534,56 +1534,143 @@ const App = {
         const file = event.target.files[0];
         if (!file) return;
 
+        const statusContainer = document.getElementById('ocrStatusContainer');
         const statusText = document.getElementById('ocrStatus');
-        if (statusText) statusText.innerText = "AttenDO AI is analysing... 🤖";
+        const uploadButtons = document.getElementById('ocrUploadButtons');
+
+        // Show animation, hide buttons
+        if (uploadButtons) uploadButtons.style.display = 'none';
+        if (statusContainer) {
+            statusContainer.style.display = 'flex';
+            // slight delay to allow display:flex to apply before adding active class for fade-in
+            setTimeout(() => statusContainer.classList.add('active'), 10);
+        }
+        if (statusText) statusText.innerText = "Preparing image...";
 
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = async () => {
-            const base64Image = reader.result.split(',')[1];
-
             try {
-                if (statusText) statusText.innerText = "AttenDO AI is analysing... 🤖";
+                // Step 1: Compress the image (phone photos can be 5-15MB)
+                if (statusText) statusText.innerText = "Optimizing image...";
+                const compressed = await this._compressImage(reader.result, file.type);
 
-                // Get Firebase auth token for the proxy
+                // Step 2: Get Firebase auth token
                 const currentUser = firebase.auth().currentUser;
                 if (!currentUser) {
-                    if (statusText) statusText.innerText = "You must be logged in to use this feature. ❌";
+                    if (statusText) statusText.innerText = "Error: Not logged in.";
+                    if (uploadButtons) uploadButtons.style.display = 'flex';
+                    if (statusContainer) statusContainer.classList.remove('active');
                     return;
                 }
                 const token = await currentUser.getIdToken();
 
-                // Call the Netlify serverless function (API key is safe on the server)
-                const response = await fetch('/.netlify/functions/parseTimetable', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ base64Image, mimeType: file.type })
-                });
+                // Step 3: Retry loop — try up to 3 times
+                const MAX_ATTEMPTS = 3;
+                let lastError = "";
 
-                const result = await response.json();
+                for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+                    try {
+                        const attemptText = MAX_ATTEMPTS > 1 && attempt > 1 ? ` (Attempt ${attempt}/${MAX_ATTEMPTS})` : '';
+                        if (statusText) statusText.innerText = `AttenDO AI is scanning...${attemptText} 🤖`;
 
-                if (!response.ok) {
-                    const errMsg = result.error || `Server error (${response.status})`;
-                    if (statusText) {
-                        statusText.innerHTML = `Analysis failed. ❌<br><span style="font-size:12px; color:#ff6b6b;">${errMsg}</span>`;
+                        const response = await fetch('/.netlify/functions/parseTimetable', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                base64Image: compressed.base64,
+                                mimeType: compressed.mimeType
+                            })
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok && result.schedule) {
+                            this.parseAndInjectTimetable(result.schedule);
+                            if (statusText) statusText.innerText = "Schedule successfully extracted! ✅";
+                            return; // Success — exit
+                        }
+
+                        // Server returned an error
+                        lastError = result.error || `Server error (${response.status})`;
+                        console.warn(`Attempt ${attempt} failed:`, lastError);
+
+                    } catch (err) {
+                        lastError = err.message || "Network error";
+                        console.warn(`Attempt ${attempt} network error:`, lastError);
                     }
-                    return;
+
+                    // Wait before retrying (skip wait on last attempt)
+                    if (attempt < MAX_ATTEMPTS) {
+                        if (statusText) statusText.innerText = "Retrying analysis...";
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
                 }
 
-                const schedule = result.schedule;
-                this.parseAndInjectTimetable(schedule);
-                if (statusText) statusText.innerText = "Schedule successfully extracted! ✅";
+                // All attempts exhausted
+                if (statusText) {
+                    statusText.innerHTML = `Analysis failed after ${MAX_ATTEMPTS} attempts. ❌<br><span style="font-size:12px; color:#ff6b6b;">${lastError}</span>`;
+                }
+                if (uploadButtons) uploadButtons.style.display = 'flex';
+                if (statusContainer) statusContainer.classList.remove('active');
 
             } catch (err) {
-                console.error("Timetable upload error:", err);
+                console.error("Timetable Upload Error:", err);
+                if (statusText) statusText.innerText = "An unexpected error occurred.";
+                if (uploadButtons) uploadButtons.style.display = 'flex';
+                if (statusContainer) statusContainer.classList.remove('active');
                 if (statusText) {
-                    statusText.innerHTML = `Failed to analyze timetable. ❌<br><span style="font-size:12px; color:#ff6b6b;">${err.message}</span>`;
+                    statusText.innerHTML = `Failed to process image. ❌<br><span style="font-size:12px; color:#ff6b6b;">${err.message}</span>`;
                 }
             }
         };
+    },
+
+    /**
+     * Compress an image using canvas — resizes to max 1600px and converts to JPEG
+     * Reduces 10MB phone photos to ~200-400KB while keeping enough detail for OCR
+     * @param {string} dataUrl - The original image data URL
+     * @param {string} originalType - Original MIME type
+     * @returns {Promise<{base64: string, mimeType: string}>}
+     */
+    _compressImage(dataUrl, originalType) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const MAX_SIZE = 1600;
+                let { width, height } = img;
+
+                // Only resize if larger than MAX_SIZE
+                if (width > MAX_SIZE || height > MAX_SIZE) {
+                    if (width > height) {
+                        height = Math.round(height * (MAX_SIZE / width));
+                        width = MAX_SIZE;
+                    } else {
+                        width = Math.round(width * (MAX_SIZE / height));
+                        height = MAX_SIZE;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Convert to JPEG for smaller size (good enough for timetable OCR)
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                const base64 = compressedDataUrl.split(',')[1];
+
+                console.log(`Image compressed: ${Math.round(dataUrl.length / 1024)}KB → ${Math.round(compressedDataUrl.length / 1024)}KB (${width}x${height})`);
+
+                resolve({ base64, mimeType: 'image/jpeg' });
+            };
+            img.onerror = () => reject(new Error('Failed to load image for compression'));
+            img.src = dataUrl;
+        });
     },
 
     parseAndInjectTimetable(schedule) {
@@ -1710,7 +1797,7 @@ const App = {
 
 
             bodyHtml = `
-              <div class="ocr-scanner-container" style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
+              <div id="ocrUploadButtons" class="ocr-scanner-container" style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
                   <label for="timetableCamera" style="background: linear-gradient(135deg, #6200EA 0%, #B388FF 100%); color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
                       📸 Scan Paper
                   </label>
@@ -1721,7 +1808,14 @@ const App = {
                   </label>
                   <input type="file" id="timetableGallery" accept="image/*" style="display: none;" onchange="App.handleTimetableUpload(event)">
               </div>
-              <p id="ocrStatus" style="text-align: center; color: #A0A0A5; font-size: 14px; margin-top: 10px;"></p>
+
+              <div id="ocrStatusContainer" class="ocr-scanner-animation" style="display: none;">
+                  <div class="ai-brain-icon">🧠</div>
+                  <div class="scanner-beam-container">
+                      <div class="scanner-beam"></div>
+                  </div>
+                  <div id="ocrStatus" class="ocr-status-text">Preparing scanner...</div>
+              </div>
               <div class="qs-subject-form">
                 <div class="form-group" style="flex:1">
                   <label class="form-label">Subject Name</label>
