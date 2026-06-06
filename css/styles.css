@@ -903,15 +903,35 @@ textarea {
 }
 
 @keyframes posterIconFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
 }
 
 @keyframes birthdayBounce {
-    0%, 100% { transform: translateY(0) scale(1); }
-    25% { transform: translateY(-6px) scale(1.05); }
-    50% { transform: translateY(0) scale(1); }
-    75% { transform: translateY(-3px) scale(1.02); }
+
+    0%,
+    100% {
+        transform: translateY(0) scale(1);
+    }
+
+    25% {
+        transform: translateY(-6px) scale(1.05);
+    }
+
+    50% {
+        transform: translateY(0) scale(1);
+    }
+
+    75% {
+        transform: translateY(-3px) scale(1.02);
+    }
 }
 
 .poster-text {
@@ -992,8 +1012,17 @@ textarea {
 }
 
 @keyframes posterGlowPulse {
-    0%, 100% { opacity: 0.5; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
 }
 
 /* Confetti Animation */
@@ -1019,20 +1048,48 @@ textarea {
     animation: confettiFall 3.5s ease-in var(--delay) infinite;
 }
 
-.confetti-0 { background: #ec4899; width: 6px; height: 10px; }
-.confetti-1 { background: #6366f1; width: 8px; height: 6px; }
-.confetti-2 { background: #f59e0b; width: 5px; height: 8px; border-radius: 50%; }
-.confetti-3 { background: #10b981; width: 7px; height: 7px; }
-.confetti-4 { background: #a855f7; width: 9px; height: 5px; border-radius: 1px; }
+.confetti-0 {
+    background: #ec4899;
+    width: 6px;
+    height: 10px;
+}
+
+.confetti-1 {
+    background: #6366f1;
+    width: 8px;
+    height: 6px;
+}
+
+.confetti-2 {
+    background: #f59e0b;
+    width: 5px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.confetti-3 {
+    background: #10b981;
+    width: 7px;
+    height: 7px;
+}
+
+.confetti-4 {
+    background: #a855f7;
+    width: 9px;
+    height: 5px;
+    border-radius: 1px;
+}
 
 @keyframes confettiFall {
     0% {
         transform: translateY(-10px) translateX(0) rotate(0deg);
         opacity: 0;
     }
+
     10% {
         opacity: 0.9;
     }
+
     100% {
         transform: translateY(140px) translateX(var(--drift)) rotate(720deg);
         opacity: 0;
@@ -4545,20 +4602,77 @@ select.form-input option {
 }
 
 @keyframes spin-border {
-    100% { transform: rotate(360deg); }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes pulse-logo {
-    0%, 100% { transform: scale(0.95); opacity: 0.8; filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.4)); }
-    50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.9)); }
+
+    0%,
+    100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+        filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.4));
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+        filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.9));
+    }
 }
 
 @keyframes ripple-out {
-    0% { transform: scale(1); opacity: 0.8; }
-    100% { transform: scale(1.8); opacity: 0; }
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1.8);
+        opacity: 0;
+    }
 }
 
 @keyframes gradient-text {
-    0% { background-position: 0% center; }
-    100% { background-position: 300% center; }
+    0% {
+        background-position: 0% center;
+    }
+
+    100% {
+        background-position: 300% center;
+    }
+}
+
+/* ========================================
+   WhatsApp Channel Link (Sidebar Footer)
+   ======================================== */
+
+.whatsapp-channel-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #25D366;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background: rgba(37, 211, 102, 0.08);
+    border: 1px solid rgba(37, 211, 102, 0.15);
+    transition: all var(--transition-normal);
+    margin-top: var(--space-xs);
+}
+
+.whatsapp-channel-link:hover {
+    color: #25D366;
+    background: rgba(37, 211, 102, 0.15);
+    border-color: rgba(37, 211, 102, 0.35);
+    box-shadow: 0 0 12px rgba(37, 211, 102, 0.2);
+    transform: translateY(-1px);
+}
+
+.whatsapp-channel-link svg {
+    flex-shrink: 0;
 }
