@@ -1630,12 +1630,22 @@ const App = {
                 if (statusText) {
                     if (err.message && err.message.includes('cropped or stretched')) {
                         statusText.innerHTML =
-                            `📸 <b>Image doesn't look right</b><br>` +
-                            `<span style="font-size:13px; color:#ffa94d; line-height:1.6;">` +
-                            `Your photo appears to be cropped or panoramic.<br>` +
-                            `Please upload a <b>full screenshot</b> of your timetable.</span>`;
+                            `<div style="background: rgba(255, 169, 77, 0.1); border: 1px solid rgba(255, 169, 77, 0.3); border-radius: 12px; padding: 16px; text-transform: none; letter-spacing: normal; text-align: left; display: flex; gap: 12px; align-items: flex-start;">` +
+                                `<div style="font-size: 24px; line-height: 1;">📸</div>` +
+                                `<div>` +
+                                    `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Image doesn't look right</div>` +
+                                    `<div style="color: #ffa94d; font-size: 13px; line-height: 1.5;">Your photo appears to be cropped or panoramic. Please upload a <b>full screenshot</b> of your timetable.</div>` +
+                                `</div>` +
+                            `</div>`;
                     } else {
-                        statusText.innerHTML = `Failed to process image. ❌<br><span style="font-size:12px; color:#ff6b6b;">${err.message}</span>`;
+                        statusText.innerHTML = 
+                            `<div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 12px; padding: 16px; text-transform: none; letter-spacing: normal; text-align: left; display: flex; gap: 12px; align-items: flex-start;">` +
+                                `<div style="font-size: 24px; line-height: 1;">❌</div>` +
+                                `<div>` +
+                                    `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Failed to process image</div>` +
+                                    `<div style="color: #ff6b6b; font-size: 12px; line-height: 1.5;">${err.message}</div>` +
+                                `</div>` +
+                            `</div>`;
                     }
                 }
             }
@@ -1870,8 +1880,12 @@ const App = {
                       </label>
                       <input type="file" id="timetableGallery" accept="image/*" style="display: none;" onchange="App.handleTimetableUpload(event)">
                   </div>
-                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
-                      <b>Tip:</b> For best results, use a standard full-screen screenshot. Avoid panoramic or extremely cropped strips.
+                  <div style="background: rgba(179, 136, 255, 0.08); border: 1px solid rgba(179, 136, 255, 0.2); border-radius: 8px; padding: 12px 14px; margin-top: 8px; width: 100%; text-align: left; display: flex; align-items: flex-start; gap: 10px; box-sizing: border-box;">
+                      <div style="font-size: 16px; line-height: 1;">💡</div>
+                      <div>
+                          <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 2px;">Tip for best results</div>
+                          <div style="color: #d0b3ff; font-size: 12px; line-height: 1.4;">Use a standard full-screen screenshot. Avoid panoramic or extremely cropped strips.</div>
+                      </div>
                   </div>
               </div>
 
