@@ -1662,9 +1662,21 @@ const App = {
 
                 // Convert to JPEG for smaller size (good enough for timetable OCR)
                 const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                const base64 = compressedDataUrl.split(',')[1];
 
-                console.log(`Image compressed: ${Math.round(dataUrl.length / 1024)}KB → ${Math.round(compressedDataUrl.length / 1024)}KB (${width}x${height})`);
+                // Robust base64 extraction — handles quirky Android WebView data URIs
+                // that may inject extra MIME params or unusual formatting
+                let base64;
+                const dataUriMatch = compressedDataUrl.match(/^data:[^;]+;base64,(.+)$/s);
+                if (dataUriMatch) {
+                    base64 = dataUriMatch[1];
+                } else {
+                    // Fallback: split on comma (standard path)
+                    base64 = compressedDataUrl.split(',')[1] || compressedDataUrl;
+                }
+                // Strip any whitespace/newlines injected by the encoder
+                base64 = base64.replace(/\s/g, '');
+
+                console.log(`Image compressed: ${Math.round(dataUrl.length / 1024)}KB → ${Math.round(base64.length * 0.75 / 1024)}KB (${width}x${height})`);
 
                 resolve({ base64, mimeType: 'image/jpeg' });
             };

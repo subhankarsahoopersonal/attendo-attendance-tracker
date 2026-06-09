@@ -237,7 +237,7 @@ exports.handler = async (event) => {
         }
 
         // ── 2. Parse request body ──────────────────────────────
-        const { base64Image, mimeType } = JSON.parse(event.body);
+        let { base64Image, mimeType } = JSON.parse(event.body);
         if (!base64Image || !mimeType) {
             return {
                 statusCode: 400,
@@ -245,6 +245,23 @@ exports.handler = async (event) => {
                 body: JSON.stringify({ error: "Missing base64Image or mimeType in request body" }),
             };
         }
+
+        // ── 2b. Sanitize "Dirty Base64" ─────────────────────────
+        // Android WebViews can send the full data URI prefix (e.g.
+        // "data:image/jpeg;base64,/9j/4AAQ...") instead of raw base64.
+        // Gemini API chokes on this prefix, causing a 30-second timeout.
+        const dataUriMatch = base64Image.match(
+            /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s
+        );
+        if (dataUriMatch) {
+            console.log(
+                `Stripped dirty base64 prefix. Detected MIME: ${dataUriMatch[1]}, Using MIME: ${mimeType}`
+            );
+            base64Image = dataUriMatch[2];
+        }
+
+        // Also strip any stray whitespace/newlines that some encoders inject
+        base64Image = base64Image.replace(/\s/g, "");
 
         // ── 3. Call Gemini API ──────────────────────────────────
         const schedule = await callGeminiAPI(base64Image, mimeType);
