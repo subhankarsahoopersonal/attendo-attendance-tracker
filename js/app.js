@@ -1632,6 +1632,12 @@ const App = {
     /**
      * Compress an image using canvas — resizes to max 1600px and converts to JPEG
      * Reduces 10MB phone photos to ~200-400KB while keeping enough detail for OCR
+     *
+     * Safeguards:
+     * - Rejects extreme aspect ratios (panoramic strips Gemini can't read)
+     * - Enforces minimum 600px on the shorter side for OCR legibility
+     * - Uses higher JPEG quality for smaller images
+     *
      * @param {string} dataUrl - The original image data URL
      * @param {string} originalType - Original MIME type
      * @returns {Promise<{base64: string, mimeType: string}>}
@@ -1641,9 +1647,23 @@ const App = {
             const img = new Image();
             img.onload = () => {
                 const MAX_SIZE = 1600;
+                const MIN_SIZE = 600;   // Minimum dimension for OCR readability
+                const MAX_ASPECT_RATIO = 3.0; // Reject anything wider/taller than 3:1
                 let { width, height } = img;
 
-                // Only resize if larger than MAX_SIZE
+                // ── Guard: reject extreme aspect ratios ──────────────
+                // A 1600x457 image (3.5:1) is a panoramic strip — Gemini
+                // can't read timetable text from something that thin.
+                const aspectRatio = Math.max(width, height) / Math.min(width, height);
+                if (aspectRatio > MAX_ASPECT_RATIO) {
+                    reject(new Error(
+                        `Your photo seems cropped or stretched (${width}×${height}). ` +
+                        `Please upload a full, clear screenshot of your timetable and try again.`
+                    ));
+                    return;
+                }
+
+                // ── Scale down if larger than MAX_SIZE ───────────────
                 if (width > MAX_SIZE || height > MAX_SIZE) {
                     if (width > height) {
                         height = Math.round(height * (MAX_SIZE / width));
@@ -1654,14 +1674,30 @@ const App = {
                     }
                 }
 
+                // ── Ensure minimum dimension for OCR legibility ──────
+                // If both sides are below 600px, scale up so text is readable
+                if (width < MIN_SIZE && height < MIN_SIZE) {
+                    if (width > height) {
+                        height = Math.round(height * (MIN_SIZE / width));
+                        width = MIN_SIZE;
+                    } else {
+                        width = Math.round(width * (MIN_SIZE / height));
+                        height = MIN_SIZE;
+                    }
+                }
+
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
+                // Use higher quality for smaller images (less data to compress)
+                const totalPixels = width * height;
+                const quality = totalPixels < 500000 ? 0.9 : 0.8;
+
                 // Convert to JPEG for smaller size (good enough for timetable OCR)
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
 
                 // Robust base64 extraction — handles quirky Android WebView data URIs
                 // that may inject extra MIME params or unusual formatting
@@ -1676,7 +1712,7 @@ const App = {
                 // Strip any whitespace/newlines injected by the encoder
                 base64 = base64.replace(/\s/g, '');
 
-                console.log(`Image compressed: ${Math.round(dataUrl.length / 1024)}KB → ${Math.round(base64.length * 0.75 / 1024)}KB (${width}x${height})`);
+                console.log(`Image compressed: ${Math.round(dataUrl.length / 1024)}KB → ${Math.round(base64.length * 0.75 / 1024)}KB (${width}x${height}, q=${quality}, ratio=${aspectRatio.toFixed(1)}:1)`);
 
                 resolve({ base64, mimeType: 'image/jpeg' });
             };
