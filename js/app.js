@@ -1619,11 +1619,24 @@ const App = {
 
             } catch (err) {
                 console.error("Timetable Upload Error:", err);
-                if (statusText) statusText.innerText = "An unexpected error occurred.";
                 if (uploadButtons) uploadButtons.style.display = 'flex';
-                if (statusContainer) statusContainer.classList.remove('active');
+
+                // Hide the scanner animation but KEEP the status container visible
+                // so the error message doesn't flash and vanish
+                const scanner = document.querySelector('.ai-premium-scanner');
+                if (scanner) scanner.style.display = 'none';
+
+                // Show a specific user-friendly message for aspect ratio errors
                 if (statusText) {
-                    statusText.innerHTML = `Failed to process image. ❌<br><span style="font-size:12px; color:#ff6b6b;">${err.message}</span>`;
+                    if (err.message && err.message.includes('cropped or stretched')) {
+                        statusText.innerHTML =
+                            `📸 <b>Image doesn't look right</b><br>` +
+                            `<span style="font-size:13px; color:#ffa94d; line-height:1.6;">` +
+                            `Your photo appears to be cropped or panoramic.<br>` +
+                            `Please upload a <b>full screenshot</b> of your timetable.</span>`;
+                    } else {
+                        statusText.innerHTML = `Failed to process image. ❌<br><span style="font-size:12px; color:#ff6b6b;">${err.message}</span>`;
+                    }
                 }
             }
         };
