@@ -1858,16 +1858,21 @@ const App = {
 
 
             bodyHtml = `
-              <div id="ocrUploadButtons" class="ocr-scanner-container" style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
-                  <label for="timetableCamera" style="background: linear-gradient(135deg, #6200EA 0%, #B388FF 100%); color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
-                      📸 Scan Paper
-                  </label>
-                  <input type="file" id="timetableCamera" accept="image/*" capture="environment" style="display: none;" onchange="App.handleTimetableUpload(event)">
-              
-                  <label for="timetableGallery" style="background: #252529; color: #FFFFFF; border: 1px solid #B388FF; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
-                      🖼️ Upload Image
-                  </label>
-                  <input type="file" id="timetableGallery" accept="image/*" style="display: none;" onchange="App.handleTimetableUpload(event)">
+              <div id="ocrUploadButtons" class="ocr-scanner-container" style="text-align: center; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                  <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
+                      <label for="timetableCamera" style="background: linear-gradient(135deg, #6200EA 0%, #B388FF 100%); color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
+                          📸 Scan Paper
+                      </label>
+                      <input type="file" id="timetableCamera" accept="image/*" capture="environment" style="display: none;" onchange="App.handleTimetableUpload(event)">
+                  
+                      <label for="timetableGallery" style="background: #252529; color: #FFFFFF; border: 1px solid #B388FF; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
+                          🖼️ Upload Image
+                      </label>
+                      <input type="file" id="timetableGallery" accept="image/*" style="display: none;" onchange="App.handleTimetableUpload(event)">
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+                      <b>Tip:</b> For best results, use a standard full-screen screenshot. Avoid panoramic or extremely cropped strips.
+                  </div>
               </div>
 
               <div id="ocrStatusContainer" class="ocr-scanner-animation" style="display: none;">
