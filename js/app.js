@@ -1547,200 +1547,187 @@ const App = {
         }
         if (statusText) statusText.innerText = "Preparing image...";
 
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-            try {
-                // Step 1: Compress the image (phone photos can be 5-15MB)
-                if (statusText) statusText.innerText = "Optimizing image...";
-                const compressed = await this._compressImage(reader.result, file.type);
+        try {
+            if (statusText) statusText.innerText = "Optimizing image...";
+            const base64String = await this.processImagePayload(file);
+            const mimeType = file.type || 'image/jpeg';
 
-                // Step 2: Get Firebase auth token
-                const currentUser = firebase.auth().currentUser;
-                if (!currentUser) {
-                    if (statusText) statusText.innerText = "Error: Not logged in.";
-                    if (uploadButtons) uploadButtons.style.display = 'flex';
-                    if (statusContainer) statusContainer.classList.remove('active');
-                    return;
-                }
-                const token = await currentUser.getIdToken();
-
-                // Step 3: Retry loop — try up to 3 times
-                const MAX_ATTEMPTS = 3;
-                let lastError = "";
-
-                for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-                    try {
-                        const attemptText = MAX_ATTEMPTS > 1 && attempt > 1 ? ` (Attempt ${attempt}/${MAX_ATTEMPTS})` : '';
-                        if (statusText) statusText.innerText = `AttenDO AI is scanning...${attemptText} 🤖`;
-
-                        const response = await fetch('/.netlify/functions/parseTimetable', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                base64Image: compressed.base64,
-                                mimeType: compressed.mimeType
-                            })
-                        });
-
-                        const result = await response.json();
-
-                        if (response.ok && result.schedule) {
-                            this.parseAndInjectTimetable(result.schedule);
-                            if (statusText) statusText.innerText = "Schedule successfully extracted! ✅";
-                            return; // Success — exit
-                        }
-
-                        // Server returned an error
-                        lastError = result.error || `Server error (${response.status})`;
-                        console.warn(`Attempt ${attempt} failed:`, lastError);
-
-                    } catch (err) {
-                        lastError = err.message || "Network error";
-                        console.warn(`Attempt ${attempt} network error:`, lastError);
-                    }
-
-                    // Wait before retrying (skip wait on last attempt)
-                    if (attempt < MAX_ATTEMPTS) {
-                        if (statusText) statusText.innerText = "Retrying analysis...";
-                        await new Promise(r => setTimeout(r, 2000));
-                    }
-                }
-
-                // All attempts exhausted
-                if (statusText) {
-                    statusText.innerHTML = `Analysis failed after ${MAX_ATTEMPTS} attempts. ❌<br><span style="font-size:12px; color:#ff6b6b;">${lastError}</span>`;
-                }
+            // Step 2: Get Firebase auth token
+            const currentUser = firebase.auth().currentUser;
+            if (!currentUser) {
+                if (statusText) statusText.innerText = "Error: Not logged in.";
                 if (uploadButtons) uploadButtons.style.display = 'flex';
                 if (statusContainer) statusContainer.classList.remove('active');
+                return;
+            }
+            const token = await currentUser.getIdToken();
 
-            } catch (err) {
-                console.error("Timetable Upload Error:", err);
-                if (uploadButtons) uploadButtons.style.display = 'flex';
+            // Step 3: Retry loop — try up to 3 times
+            const MAX_ATTEMPTS = 3;
+            let lastError = "";
 
-                // Hide the scanner animation but KEEP the status container visible
-                // so the error message doesn't flash and vanish
-                const scanner = document.querySelector('.ai-premium-scanner');
-                if (scanner) scanner.style.display = 'none';
+            for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+                try {
+                    const attemptText = MAX_ATTEMPTS > 1 && attempt > 1 ? ` (Attempt ${attempt}/${MAX_ATTEMPTS})` : '';
+                    if (statusText) statusText.innerText = `AttenDO AI is scanning...${attemptText} 🤖`;
 
-                // Show a specific user-friendly message for aspect ratio errors
-                if (statusText) {
-                    if (err.message && err.message.includes('cropped or stretched')) {
-                        statusText.innerHTML =
-                            `<div style="background: rgba(255, 169, 77, 0.1); border: 1px solid rgba(255, 169, 77, 0.3); border-radius: 12px; padding: 16px; text-transform: none; letter-spacing: normal; text-align: left; display: flex; gap: 12px; align-items: flex-start;">` +
-                                `<div style="font-size: 24px; line-height: 1;">📸</div>` +
-                                `<div>` +
-                                    `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Image doesn't look right</div>` +
-                                    `<div style="color: #ffa94d; font-size: 13px; line-height: 1.5;">Your photo appears to be cropped or panoramic. Please upload a <b>full screenshot</b> of your timetable.</div>` +
-                                `</div>` +
-                            `</div>`;
-                    } else {
-                        statusText.innerHTML = 
-                            `<div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 12px; padding: 16px; text-transform: none; letter-spacing: normal; text-align: left; display: flex; gap: 12px; align-items: flex-start;">` +
-                                `<div style="font-size: 24px; line-height: 1;">❌</div>` +
-                                `<div>` +
-                                    `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Failed to process image</div>` +
-                                    `<div style="color: #ff6b6b; font-size: 12px; line-height: 1.5;">${err.message}</div>` +
-                                `</div>` +
-                            `</div>`;
+                    const response = await fetch('/.netlify/functions/parseTimetable', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            base64Image: base64String,
+                            mimeType: mimeType
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.schedule) {
+                        this.parseAndInjectTimetable(result.schedule);
+                        if (statusText) statusText.innerText = "Schedule successfully extracted! ✅";
+                        return; // Success — exit
                     }
+
+                    // Server returned an error
+                    lastError = result.error || `Server error (${response.status})`;
+                    console.warn(`Attempt ${attempt} failed:`, lastError);
+
+                } catch (err) {
+                    lastError = err.message || "Network error";
+                    console.warn(`Attempt ${attempt} network error:`, lastError);
+                }
+
+                // Wait before retrying (skip wait on last attempt)
+                if (attempt < MAX_ATTEMPTS) {
+                    if (statusText) statusText.innerText = "Retrying analysis...";
+                    await new Promise(r => setTimeout(r, 2000));
                 }
             }
-        };
+
+            // All attempts exhausted
+            if (statusText) {
+                statusText.innerHTML = `Analysis failed after ${MAX_ATTEMPTS} attempts. ❌<br><span style="font-size:12px; color:#ff6b6b;">${lastError}</span>`;
+            }
+            if (uploadButtons) uploadButtons.style.display = 'flex';
+            if (statusContainer) statusContainer.classList.remove('active');
+
+        } catch (err) {
+            console.error("Timetable Upload Error:", err);
+            if (uploadButtons) uploadButtons.style.display = 'flex';
+
+            // Hide the scanner animation but KEEP the status container visible
+            // so the error message doesn't flash and vanish
+            const scanner = document.querySelector('.ai-premium-scanner');
+            if (scanner) scanner.style.display = 'none';
+
+            // Show a specific user-friendly message for aspect ratio errors
+            if (statusText) {
+                if (err.message && err.message.includes('cropped or stretched')) {
+                    statusText.innerHTML =
+                        `<div style="background: rgba(255, 169, 77, 0.1); border: 1px solid rgba(255, 169, 77, 0.3); border-radius: 12px; padding: 16px; text-transform: none; letter-spacing: normal; text-align: left; display: flex; gap: 12px; align-items: flex-start;">` +
+                            `<div style="font-size: 24px; line-height: 1;">📸</div>` +
+                            `<div>` +
+                                `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Image doesn't look right</div>` +
+                                `<div style="color: #ffa94d; font-size: 13px; line-height: 1.5;">Your photo appears to be cropped or panoramic. Please upload a <b>full screenshot</b> of your timetable.</div>` +
+                            `</div>` +
+                        `</div>`;
+                } else {
+                    statusText.innerHTML = 
+                        `<div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 12px; padding: 16px; text-transform: none; letter-spacing: normal; text-align: left; display: flex; gap: 12px; align-items: flex-start;">` +
+                            `<div style="font-size: 24px; line-height: 1;">❌</div>` +
+                            `<div>` +
+                                `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Failed to process image</div>` +
+                                `<div style="color: #ff6b6b; font-size: 12px; line-height: 1.5;">${err.message}</div>` +
+                            `</div>` +
+                        `</div>`;
+                }
+            }
+        }
     },
 
     /**
-     * Compress an image using canvas — resizes to max 1600px and converts to JPEG
-     * Reduces 10MB phone photos to ~200-400KB while keeping enough detail for OCR
-     *
-     * Safeguards:
-     * - Rejects extreme aspect ratios (panoramic strips Gemini can't read)
-     * - Enforces minimum 600px on the shorter side for OCR legibility
-     * - Uses higher JPEG quality for smaller images
-     *
-     * @param {string} dataUrl - The original image data URL
-     * @param {string} originalType - Original MIME type
-     * @returns {Promise<{base64: string, mimeType: string}>}
+     * Processes an uploaded image file. 
+     * If the file is small enough, it converts it directly to Base64 without quality loss.
+     * If it exceeds the safety threshold, it dynamically compresses it to fit Netlify's payload limit.
+     * @param {File} file - The image file from the input element or camera intent.
+     * @returns {Promise<string>} - Resolves with the clean Base64 string (without data URL prefix).
      */
-    _compressImage(dataUrl, originalType) {
+    async processImagePayload(file) {
+        // 6MB in bytes = 6,291,456. 
+        // We set a strict safe backend payload limit at 5.5MB to leave room for headers/prompts.
+        const NETLIFY_MAX_PAYLOAD_BYTES = 5.5 * 1024 * 1024; 
+        
+        // Estimate Base64 size: Raw size multiplied by 1.33
+        const estimatedBase64Size = file.size * 1.3333;
+
+        if (estimatedBase64Size < NETLIFY_MAX_PAYLOAD_BYTES) {
+            console.log(`[Payload Safe] Size: ${(estimatedBase64Size / 1024 / 1024).toFixed(2)}MB. Converting directly without compression.`);
+            return await this.convertToBase64(file);
+        }
+
+        console.warn(`[Payload Too Large] Estimated size: ${(estimatedBase64Size / 1024 / 1024).toFixed(2)}MB. Triggering safe compression fallback...`);
+        return await this.compressImageToLimit(file, NETLIFY_MAX_PAYLOAD_BYTES);
+    },
+
+    /**
+     * Standard Helper to convert a file cleanly to Base64 string
+     */
+    convertToBase64(file) {
         return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-                const MAX_SIZE = 1600;
-                const MIN_SIZE = 600;   // Minimum dimension for OCR readability
-                const MAX_ASPECT_RATIO = 3.0; // Reject anything wider/taller than 3:1
-                let { width, height } = img;
-
-                // ── Guard: reject extreme aspect ratios ──────────────
-                // A 1600x457 image (3.5:1) is a panoramic strip — Gemini
-                // can't read timetable text from something that thin.
-                const aspectRatio = Math.max(width, height) / Math.min(width, height);
-                if (aspectRatio > MAX_ASPECT_RATIO) {
-                    reject(new Error(
-                        `Your photo seems cropped or stretched (${width}×${height}). ` +
-                        `Please upload a full, clear screenshot of your timetable and try again.`
-                    ));
-                    return;
-                }
-
-                // ── Scale down if larger than MAX_SIZE ───────────────
-                if (width > MAX_SIZE || height > MAX_SIZE) {
-                    if (width > height) {
-                        height = Math.round(height * (MAX_SIZE / width));
-                        width = MAX_SIZE;
-                    } else {
-                        width = Math.round(width * (MAX_SIZE / height));
-                        height = MAX_SIZE;
-                    }
-                }
-
-                // ── Ensure minimum dimension for OCR legibility ──────
-                // If both sides are below 600px, scale up so text is readable
-                if (width < MIN_SIZE && height < MIN_SIZE) {
-                    if (width > height) {
-                        height = Math.round(height * (MIN_SIZE / width));
-                        width = MIN_SIZE;
-                    } else {
-                        width = Math.round(width * (MIN_SIZE / height));
-                        height = MIN_SIZE;
-                    }
-                }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                // Use higher quality for smaller images (less data to compress)
-                const totalPixels = width * height;
-                const quality = totalPixels < 500000 ? 0.9 : 0.8;
-
-                // Convert to JPEG for smaller size (good enough for timetable OCR)
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-
-                // Robust base64 extraction — handles quirky Android WebView data URIs
-                // that may inject extra MIME params or unusual formatting
-                let base64;
-                const dataUriMatch = compressedDataUrl.match(/^data:[^;]+;base64,(.+)$/s);
-                if (dataUriMatch) {
-                    base64 = dataUriMatch[1];
-                } else {
-                    // Fallback: split on comma (standard path)
-                    base64 = compressedDataUrl.split(',')[1] || compressedDataUrl;
-                }
-                // Strip any whitespace/newlines injected by the encoder
-                base64 = base64.replace(/\s/g, '');
-
-                console.log(`Image compressed: ${Math.round(dataUrl.length / 1024)}KB → ${Math.round(base64.length * 0.75 / 1024)}KB (${width}x${height}, q=${quality}, ratio=${aspectRatio.toFixed(1)}:1)`);
-
-                resolve({ base64, mimeType: 'image/jpeg' });
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                // Strip the metadata prefix (e.g., "data:image/jpeg;base64,")
+                const base64String = reader.result.split(',')[1];
+                resolve(base64String);
             };
-            img.onerror = () => reject(new Error('Failed to load image for compression'));
-            img.src = dataUrl;
+            reader.onerror = error => reject(error);
+        });
+    },
+
+    /**
+     * Fallback compressor that scales image quality dynamically to stay under the limit
+     */
+    compressImageToLimit(file, maxByteSize) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // Keep native dimensions to preserve wide/panoramic ratios perfectly
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Start with a high quality compression profile instead of destroying details
+                    let quality = 0.85; 
+                    let base64Result = "";
+                    let finalEstimatedSize = 0;
+
+                    // Loop downward slightly if the image is exceptionally massive
+                    do {
+                        base64Result = canvas.toDataURL('image/jpeg', quality).split(',')[1];
+                        finalEstimatedSize = base64Result.length;
+                        
+                        if (finalEstimatedSize > maxByteSize) {
+                            quality -= 0.1; // Drop quality by 10% if still too large
+                        }
+                    } while (finalEstimatedSize > maxByteSize && quality > 0.3);
+
+                    console.log(`[Compression Finished] Final Payload Size: ${(finalEstimatedSize / 1024 / 1024).toFixed(2)}MB at quality ${quality}`);
+                    resolve(base64Result);
+                };
+                img.onerror = err => reject(err);
+            };
+            reader.onerror = err => reject(err);
         });
     },
 
