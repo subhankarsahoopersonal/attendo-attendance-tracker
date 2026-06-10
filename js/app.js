@@ -1858,14 +1858,9 @@ const App = {
               <div id="ocrUploadButtons" class="ocr-scanner-container" style="text-align: center; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
                   <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
                       <label for="timetableCamera" style="background: linear-gradient(135deg, #6200EA 0%, #B388FF 100%); color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
-                          📸 Scan Paper
-                      </label>
-                      <input type="file" id="timetableCamera" accept="image/*" capture="environment" style="display: none;" onchange="App.handleTimetableUpload(event)">
-                  
-                      <label for="timetableGallery" style="background: #252529; color: #FFFFFF; border: 1px solid #B388FF; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
                           🖼️ Upload Image
                       </label>
-                      <input type="file" id="timetableGallery" accept="image/*" style="display: none;" onchange="App.handleTimetableUpload(event)">
+                      <input type="file" id="timetableCamera" accept="image/*" style="display: none;" onchange="App.handleTimetableUpload(event)">
                   </div>
                   <div style="background: rgba(179, 136, 255, 0.08); border: 1px solid rgba(179, 136, 255, 0.2); border-radius: 8px; padding: 12px 14px; margin-top: 8px; width: 100%; text-align: left; display: flex; align-items: flex-start; gap: 10px; box-sizing: border-box;">
                       <div style="font-size: 16px; line-height: 1;">💡</div>
