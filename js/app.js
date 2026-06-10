@@ -1890,7 +1890,8 @@ const App = {
               <div class="qs-subject-form">
                 <div class="form-group" style="flex:1">
                   <label class="form-label">Subject Name</label>
-                  <input type="text" id="qs-subject-name" class="form-input" placeholder="e.g. Physics" onkeydown="if(event.key==='Enter'){event.preventDefault();App.quickSetupAddSubject()}">
+                  <input type="text" id="qs-subject-name" class="form-input" placeholder="e.g. Physics" oninput="App.checkQuickSetupDuplicate(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();App.quickSetupAddSubject()}">
+                  <div id="qs-subject-warning" style="color: var(--color-danger); font-size: 12px; margin-top: 4px; display: none;">Subject already exists</div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Color</label>
@@ -2045,6 +2046,23 @@ const App = {
         });
     },
 
+    checkQuickSetupDuplicate(name) {
+        if (!this._quickSetupState) return;
+        const warning = document.getElementById('qs-subject-warning');
+        const input = document.getElementById('qs-subject-name');
+        if (!warning || !input) return;
+        
+        const isDuplicate = this._quickSetupState.subjects.some(s => s.name.toLowerCase() === name.trim().toLowerCase());
+        
+        if (isDuplicate && name.trim() !== '') {
+            warning.style.display = 'block';
+            input.style.borderColor = 'var(--color-danger)';
+        } else {
+            warning.style.display = 'none';
+            input.style.borderColor = '';
+        }
+    },
+
     quickSetupAddSubject() {
         if (!this._quickSetupState) return;
         const input = document.getElementById('qs-subject-name');
@@ -2053,8 +2071,7 @@ const App = {
 
         // Check duplicate
         if (this._quickSetupState.subjects.some(s => s.name.toLowerCase() === name.toLowerCase())) {
-            input.style.borderColor = 'var(--color-danger)';
-            setTimeout(() => input.style.borderColor = '', 1000);
+            this.checkQuickSetupDuplicate(name);
             return;
         }
 
