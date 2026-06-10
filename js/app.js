@@ -179,10 +179,10 @@ const App = {
                 const noteText = notes[slot.id] || '';
                 return `
         <div class="timetable-slot-item" style="display: flex; flex-wrap: wrap; background: var(--bg-card); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-sm); border-radius: var(--radius-md); border-left: 3px solid ${slot.subject ? slot.subject.color : '#666'}">
-          <div style="display:flex; justify-content: space-between; align-items: center; width: 100%;">
-            <div style="display:flex; flex-direction:column;">
+          <div style="display:flex; justify-content: space-between; align-items: center; width: 100%; gap: var(--space-sm);">
+            <div style="display:flex; flex-direction:column; flex: 1; min-width: 0;">
               <span class="slot-time" style="font-size: var(--font-size-xs); color: var(--text-muted);">${slot.time}${slot.endTime ? ' - ' + slot.endTime : ''}</span>
-              <span class="slot-subject" style="font-weight: 500;">${slot.subject ? slot.subject.name : 'Unknown Subject'}</span>
+              <span class="slot-subject" style="font-weight: 500; overflow-wrap: break-word; word-break: break-word; white-space: normal;">${slot.subject ? slot.subject.name : 'Unknown Subject'}</span>
             </div>
             <div style="display:flex; align-items:center; gap: 4px;">
               <button class="btn-note ${hasNote ? 'has-note' : ''}" onclick="App.toggleSlotNote('${slot.id}')" title="${hasNote ? 'Edit note' : 'Add note'}">📝</button>
@@ -209,8 +209,8 @@ const App = {
             grid.appendChild(dayColumn);
         });
 
-        // Style the grid container
-        grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-lg);';
+        // Ensure CSS class is applied instead of inline styling for better responsive control
+        grid.className = 'timetable-grid-view';
 
         // Manage Subjects Section (Appending to bottom)
         let manageSection = document.getElementById('manage-subjects-section');

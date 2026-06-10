@@ -85,6 +85,7 @@
 html {
     font-size: 16px;
     scroll-behavior: smooth;
+    overflow-x: hidden;
 }
 
 body {
@@ -559,6 +560,7 @@ textarea {
 .app-container {
     display: flex;
     min-height: 100vh;
+    width: 100%;
 }
 
 /* Sidebar */
@@ -749,9 +751,11 @@ textarea {
 /* Main Content */
 .main-content {
     flex: 1;
+    width: 100%;
     margin-left: 300px;
     padding: var(--space-xl);
     min-height: 100vh;
+    box-sizing: border-box;
 }
 
 /* Page Header */
@@ -1873,7 +1877,13 @@ textarea {
    ======================================== */
 
 .timetable-container {
-    overflow-x: auto;
+    width: 100%;
+}
+
+.timetable-grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-lg);
 }
 
 /* Updated Timetable list view styles used in app.js */
@@ -3128,6 +3138,7 @@ select.form-input option {
 
 .qs-slot-row {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-xs);
     align-items: center;
     margin-bottom: var(--space-sm);
@@ -3281,6 +3292,24 @@ select.form-input option {
 
     .main-content {
         margin-left: 0;
+    }
+
+    /* Timetable single column on mobile/tablet */
+    #timetable-grid-content, .timetable-grid-view {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        gap: var(--space-md);
+    }
+
+    .timetable-day-column {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
 
     .mobile-header {
@@ -3457,9 +3486,20 @@ select.form-input option {
         padding: var(--space-lg);
     }
 
-    /* Timetable single column on mobile */
-    .timetable-grid-view {
-        grid-template-columns: 1fr !important;
+    /* Force quick setup inputs to wrap neatly on mobile using Grid */
+    .qs-slot-row {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr auto !important;
+        gap: var(--space-xs);
+    }
+    .qs-slot-row select {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+    }
+    .qs-slot-row input[type="time"],
+    .qs-slot-row input[type="text"] {
+        width: 100% !important;
+        min-width: 0 !important;
     }
 
     /* Subject card — no lift on hover (prevents sticky-hover on touch) */
@@ -3550,18 +3590,6 @@ select.form-input option {
     .qs-color-dot {
         width: 20px;
         height: 20px;
-    }
-
-    .qs-slot-row {
-        flex-wrap: wrap;
-    }
-
-    .qs-slot-row select {
-        flex: 1 1 100%;
-    }
-
-    .qs-slot-row input[type="time"] {
-        flex: 1 1 40%;
     }
 
     .stats-grid {
