@@ -1870,8 +1870,8 @@ const App = {
                   <div style="background: rgba(179, 136, 255, 0.08); border: 1px solid rgba(179, 136, 255, 0.2); border-radius: 8px; padding: 12px 14px; margin-top: 8px; width: 100%; text-align: left; display: flex; align-items: flex-start; gap: 10px; box-sizing: border-box;">
                       <div style="font-size: 16px; line-height: 1;">💡</div>
                       <div>
-                          <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 2px;">Tip for best results</div>
-                          <div style="color: #d0b3ff; font-size: 12px; line-height: 1.4;">Use a standard full-screen screenshot. Avoid panoramic or extremely cropped strips.</div>
+                          <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 2px;">Tip for better analysis</div>
+                          <div style="color: #d0b3ff; font-size: 12px; line-height: 1.4;">Use an image under 6 MB for better analysis. Avoid panoramic or extremely cropped strips.</div>
                       </div>
                   </div>
               </div>
