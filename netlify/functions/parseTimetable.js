@@ -21,18 +21,13 @@ if (!admin.apps.length) {
     });
 }
 
-// ── Constants ──────────────────────────────────────────────────────
-// Models ordered by preference — 2.5-flash first (stable & fast), 3.5-flash
-// moved to the end because it frequently hits 503 high-demand spikes that
-// burn through Netlify's 30-second timeout via retry loops.
+// Models ordered by preference — hardcoding strictly to 3.1-flash-lite as requested
+// to test its performance and speed.
 const GEMINI_MODELS = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
 ];
 
-const MAX_RETRIES_PER_MODEL = 1;
+const MAX_RETRIES_PER_MODEL = 3;
 
 const EXTRACTION_PROMPT =
     "Extract the class schedule from this timetable image. Return ONLY a valid JSON array of objects. " +
