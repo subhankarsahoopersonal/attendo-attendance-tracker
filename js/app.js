@@ -2295,3 +2295,63 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. ALWAYS wake up Firebase in the background
     AuthManager.init();
 });
+
+// ========================================
+// Android Back Button Walkie-Talkie System
+// ========================================
+
+window.handleAndroidBack = function() {
+    // 1. Check Custom Dialog Overlay
+    const customDialog = document.querySelector('.custom-dialog-overlay.active');
+    if (customDialog) {
+        const cancelBtn = document.getElementById('custom-dialog-cancel');
+        const okBtn = document.getElementById('custom-dialog-ok');
+        
+        if (cancelBtn && cancelBtn.style.display !== 'none') {
+            cancelBtn.click();
+        } else if (okBtn) {
+            okBtn.click();
+        }
+        return true;
+    }
+
+    // 2. Check Modal Overlay
+    const modal = document.querySelector('.modal-overlay.active');
+    if (modal) {
+        modal.classList.remove('active');
+        return true;
+    }
+
+    // 3. Check Sidebar (Mobile Menu)
+    const sidebar = document.querySelector('.sidebar.open');
+    if (sidebar) {
+        sidebar.classList.remove('open');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+        return true;
+    }
+
+    // 4. Check Chatbot Window
+    const chatWindow = document.querySelector('.chat-window.active');
+    if (chatWindow) {
+        chatWindow.classList.remove('active');
+        const chatFab = document.querySelector('.chat-fab');
+        if (chatFab) chatFab.classList.remove('active');
+        return true;
+    }
+
+    // 5. Check Account Linking Prompt
+    const linkingPrompt = document.getElementById('account-linking-prompt');
+    if (linkingPrompt && !linkingPrompt.classList.contains('hidden')) {
+        if (typeof cancelLinking === 'function') {
+            cancelLinking();
+        } else {
+            linkingPrompt.classList.add('hidden');
+        }
+        return true;
+    }
+
+    // Tell Android: "No popups are open right now. Go ahead and exit."
+    return false;
+};
