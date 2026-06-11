@@ -38,7 +38,7 @@ const EXTRACTION_PROMPT =
     "you MUST output SEPARATE entries for each hour (e.g. one at 09:30-10:30 and another at 10:30-11:30) with the SAME subject name. " +
     "2) If a cell contains '/' between two subject names (e.g. 'JOB READINESS/ENGLISH'), use ONLY the first name before the '/' (e.g. 'JOB READINESS'). " +
     "3) If a cell contains '&' in the subject name (e.g. 'Differential Equation & Linear Algebra'), keep it as ONE subject — do NOT split it. " +
-    "4) Extract the room number or location and format it cleanly. " +
+    "4) Extract the room number or location and format it cleanly. DO NOT include 'TUT', 'PR', or 'PP' as room names (they are class types, not rooms); if that's all that's there, leave room empty. " +
     "5) Convert all times to 24-hour HH:MM format (e.g. 9.30AM -> 09:30, 1.30PM -> 13:30). " +
     "6) Ignore breaks, lunches, and empty slots.";
 

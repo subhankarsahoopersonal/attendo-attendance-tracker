@@ -67,15 +67,15 @@ const App = {
 
             // Format message to handle newlines as <br>
             msgEl.innerHTML = message.replace(/\n/g, '<br>');
-            
+
             if (inputEl) {
                 inputEl.value = defaultValue;
                 inputEl.style.display = 'block';
             }
-            
+
             cancelBtn.style.display = '';
             overlay.classList.add('active');
-            
+
             // Auto focus input
             if (inputEl) setTimeout(() => inputEl.focus(), 100);
 
@@ -97,7 +97,7 @@ const App = {
 
             document.getElementById('custom-dialog-ok').addEventListener('click', confirmHandler);
             document.getElementById('custom-dialog-cancel').addEventListener('click', () => { cleanup(); resolve(null); });
-            
+
             if (inputEl) {
                 inputEl.onkeydown = (e) => {
                     if (e.key === 'Enter') {
