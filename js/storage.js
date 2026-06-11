@@ -494,6 +494,13 @@ const StorageManager = {
 
         // Update subject stats
         this.applyAttendanceAction(subjectId, status);
+
+        // Track attendance update event for Google Analytics
+        if (typeof gtag === 'function') {
+            gtag('event', 'attendance_updated', {
+                'platform': 'android_webview' 
+            });
+        }
     },
 
     /**
