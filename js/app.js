@@ -1628,20 +1628,20 @@ const App = {
                 if (err.message && err.message.includes('cropped or stretched')) {
                     statusText.innerHTML =
                         `<div style="background: rgba(255, 169, 77, 0.1); border: 1px solid rgba(255, 169, 77, 0.3); border-radius: 12px; padding: 16px; text-transform: none; letter-spacing: normal; text-align: left; display: flex; gap: 12px; align-items: flex-start;">` +
-                            `<div style="font-size: 24px; line-height: 1;">📸</div>` +
-                            `<div>` +
-                                `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Image doesn't look right</div>` +
-                                `<div style="color: #ffa94d; font-size: 13px; line-height: 1.5;">Your photo appears to be cropped or panoramic. Please upload a <b>full screenshot</b> of your timetable.</div>` +
-                            `</div>` +
+                        `<div style="font-size: 24px; line-height: 1;">📸</div>` +
+                        `<div>` +
+                        `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Image doesn't look right</div>` +
+                        `<div style="color: #ffa94d; font-size: 13px; line-height: 1.5;">Your photo appears to be cropped or panoramic. Please upload a <b>full screenshot</b> of your timetable.</div>` +
+                        `</div>` +
                         `</div>`;
                 } else {
-                    statusText.innerHTML = 
+                    statusText.innerHTML =
                         `<div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 12px; padding: 16px; text-transform: none; letter-spacing: normal; text-align: left; display: flex; gap: 12px; align-items: flex-start;">` +
-                            `<div style="font-size: 24px; line-height: 1;">❌</div>` +
-                            `<div>` +
-                                `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Failed to process image</div>` +
-                                `<div style="color: #ff6b6b; font-size: 12px; line-height: 1.5;">${err.message}</div>` +
-                            `</div>` +
+                        `<div style="font-size: 24px; line-height: 1;">❌</div>` +
+                        `<div>` +
+                        `<div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">Failed to process image</div>` +
+                        `<div style="color: #ff6b6b; font-size: 12px; line-height: 1.5;">${err.message}</div>` +
+                        `</div>` +
                         `</div>`;
                 }
             }
@@ -1658,8 +1658,8 @@ const App = {
     async processImagePayload(file) {
         // 6MB in bytes = 6,291,456. 
         // We set a strict safe backend payload limit at 5.5MB to leave room for headers/prompts.
-        const NETLIFY_MAX_PAYLOAD_BYTES = 5.5 * 1024 * 1024; 
-        
+        const NETLIFY_MAX_PAYLOAD_BYTES = 5.5 * 1024 * 1024;
+
         // Estimate Base64 size: Raw size multiplied by 1.33
         const estimatedBase64Size = file.size * 1.3333;
 
@@ -1708,7 +1708,7 @@ const App = {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
                     // Start with a high quality compression profile instead of destroying details
-                    let quality = 0.85; 
+                    let quality = 0.85;
                     let base64Result = "";
                     let finalEstimatedSize = 0;
 
@@ -1716,7 +1716,7 @@ const App = {
                     do {
                         base64Result = canvas.toDataURL('image/jpeg', quality).split(',')[1];
                         finalEstimatedSize = base64Result.length;
-                        
+
                         if (finalEstimatedSize > maxByteSize) {
                             quality -= 0.1; // Drop quality by 10% if still too large
                         }
@@ -1896,6 +1896,14 @@ const App = {
               </div>
               <div class="qs-chips">${chips}</div>
               <p class="qs-hint">${state.subjects.length === 0 ? 'Add at least one subject to continue' : `${state.subjects.length} subject${state.subjects.length > 1 ? 's' : ''} added — add more or click Next`}</p>
+              ${state.subjects.length > 1 ? `
+              <div style="background: rgba(179, 136, 255, 0.08); border: 1px solid rgba(179, 136, 255, 0.2); border-radius: 8px; padding: 12px 14px; margin-top: 12px; width: 100%; text-align: left; display: flex; align-items: flex-start; gap: 10px; box-sizing: border-box;">
+                  <div style="font-size: 16px; line-height: 1;">💡</div>
+                  <div>
+                      <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 2px;">Merge Subjects</div>
+                      <div style="color: #d0b3ff; font-size: 12px; line-height: 1.4;">Drag and drop one subject onto another to merge both subjects' class names and times.</div>
+                  </div>
+              </div>` : ''}
             `;
         }
 
@@ -2046,9 +2054,9 @@ const App = {
         const warning = document.getElementById('qs-subject-warning');
         const input = document.getElementById('qs-subject-name');
         if (!warning || !input) return;
-        
+
         const isDuplicate = this._quickSetupState.subjects.some(s => s.name.toLowerCase() === name.trim().toLowerCase());
-        
+
         if (isDuplicate && name.trim() !== '') {
             warning.style.display = 'block';
             input.style.borderColor = 'var(--color-danger)';
