@@ -20,6 +20,8 @@ const App = {
 
             msgEl.textContent = message;
             cancelBtn.style.display = '';
+            const inputEl = document.getElementById('custom-dialog-input');
+            if (inputEl) inputEl.style.display = 'none';
             overlay.classList.add('active');
 
             const cleanup = () => {
@@ -42,6 +44,8 @@ const App = {
 
             msgEl.textContent = message;
             cancelBtn.style.display = 'none';
+            const inputEl = document.getElementById('custom-dialog-input');
+            if (inputEl) inputEl.style.display = 'none';
             overlay.classList.add('active');
 
             const cleanup = () => {
@@ -50,6 +54,58 @@ const App = {
             };
 
             document.getElementById('custom-dialog-ok').addEventListener('click', () => { cleanup(); resolve(); });
+        });
+    },
+
+    showCustomPrompt(message, defaultValue = '') {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('custom-dialog-overlay');
+            const msgEl = document.getElementById('custom-dialog-message');
+            const inputEl = document.getElementById('custom-dialog-input');
+            const okBtn = document.getElementById('custom-dialog-ok');
+            const cancelBtn = document.getElementById('custom-dialog-cancel');
+
+            // Format message to handle newlines as <br>
+            msgEl.innerHTML = message.replace(/\n/g, '<br>');
+            
+            if (inputEl) {
+                inputEl.value = defaultValue;
+                inputEl.style.display = 'block';
+            }
+            
+            cancelBtn.style.display = '';
+            overlay.classList.add('active');
+            
+            // Auto focus input
+            if (inputEl) setTimeout(() => inputEl.focus(), 100);
+
+            const cleanup = () => {
+                overlay.classList.remove('active');
+                okBtn.replaceWith(okBtn.cloneNode(true));
+                cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+                if (inputEl) {
+                    inputEl.style.display = 'none';
+                    inputEl.onkeydown = null;
+                }
+            };
+
+            const confirmHandler = () => {
+                const val = inputEl ? inputEl.value.trim() : '';
+                cleanup();
+                resolve(val);
+            };
+
+            document.getElementById('custom-dialog-ok').addEventListener('click', confirmHandler);
+            document.getElementById('custom-dialog-cancel').addEventListener('click', () => { cleanup(); resolve(null); });
+            
+            if (inputEl) {
+                inputEl.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        confirmHandler();
+                    }
+                };
+            }
         });
     },
 
@@ -276,7 +332,7 @@ const App = {
         event.currentTarget.style.opacity = '1';
     },
 
-    handleSubjectDrop(event, targetSubjectId) {
+    async handleSubjectDrop(event, targetSubjectId) {
         event.preventDefault();
         event.stopPropagation();
 
@@ -305,7 +361,7 @@ const App = {
             }
 
             let suggestedName = targetSub.name.split('-')[0].replace('Lab', '').trim();
-            const finalMergedName = prompt(
+            const finalMergedName = await this.showCustomPrompt(
                 `Merging:\n1. ${draggedSub.name}\n2. ${targetSub.name}\n\nEnter the new combined name:`,
                 suggestedName
             );
@@ -354,7 +410,7 @@ const App = {
             if (!draggedSub || !targetSub) return;
 
             let suggestedName = targetSub.name.split('-')[0].replace('Lab', '').trim();
-            const finalMergedName = prompt(
+            const finalMergedName = await this.showCustomPrompt(
                 `Merging:\n1. ${draggedSub.name}\n2. ${targetSub.name}\n\nEnter the new combined name:`,
                 suggestedName
             );
