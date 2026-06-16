@@ -225,10 +225,46 @@ const AuthManager = {
      */
     showError(message) {
         const el = document.getElementById('auth-error');
+        const successEl = document.getElementById('auth-success');
+        if (successEl) successEl.classList.add('hidden');
         if (el) {
             el.textContent = message;
             el.classList.remove('hidden');
             setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+    },
+
+    /**
+     * Show success message
+     */
+    showSuccess(message) {
+        const el = document.getElementById('auth-success');
+        const errorEl = document.getElementById('auth-error');
+        if (errorEl) errorEl.classList.add('hidden');
+        if (el) {
+            el.textContent = message;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 8000);
+        }
+    },
+
+    /**
+     * Send password reset email
+     */
+    async sendPasswordResetEmail(email) {
+        try {
+            this.setLoading(true);
+            await auth.sendPasswordResetEmail(email);
+            this.showSuccess('Password reset email sent! Check your inbox.');
+        } catch (error) {
+            if (error.code === 'auth/user-not-found') {
+                // Don't reveal whether an email exists for security
+                this.showSuccess('If an account exists with this email, a reset link has been sent.');
+            } else {
+                this.showError(this.friendlyError(error.code));
+            }
+        } finally {
+            this.setLoading(false);
         }
     },
 

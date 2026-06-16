@@ -498,7 +498,7 @@ const StorageManager = {
         // Track attendance update event for Google Analytics
         if (typeof gtag === 'function') {
             gtag('event', 'attendance_updated', {
-                'platform': 'android_webview' 
+                'platform': 'android_webview'
             });
         }
     },

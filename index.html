@@ -52,6 +52,7 @@
             </div>
 
             <div id="auth-error" class="auth-error hidden"></div>
+            <div id="auth-success" class="auth-success hidden"></div>
 
             <!-- Account Linking Prompt (shown when Google login conflicts with email/password) -->
             <div id="account-linking-prompt" class="account-linking-prompt hidden">
@@ -100,6 +101,9 @@
                 <div class="form-group">
                     <input type="password" id="auth-password" class="form-input" placeholder="Password" required>
                 </div>
+                <p class="forgot-password" id="forgot-password-link">
+                    <a href="#" onclick="handleForgotPassword(event)">Forgot password?</a>
+                </p>
                 <button type="submit" class="auth-btn email-btn" id="auth-submit-btn" onclick="handleEmailAuth()">Sign
                     In</button>
             </form>
@@ -120,6 +124,10 @@
             document.getElementById('auth-submit-btn').textContent = isSignUp ? 'Create Account' : 'Sign In';
             document.getElementById('auth-toggle-text').textContent = isSignUp ? 'Already have an account?' : "Don't have an account?";
             document.getElementById('auth-toggle-link').textContent = isSignUp ? 'Sign In' : 'Sign Up';
+            document.getElementById('forgot-password-link').classList.toggle('hidden', isSignUp);
+            // Clear any messages when switching mode
+            document.getElementById('auth-error').classList.add('hidden');
+            document.getElementById('auth-success').classList.add('hidden');
         }
         function handleEmailAuth() {
             const email = document.getElementById('auth-email').value;
@@ -131,6 +139,15 @@
             } else {
                 AuthManager.signInWithEmail(email, password);
             }
+        }
+        function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            if (!email) {
+                AuthManager.showError('Please enter your email address first.');
+                return;
+            }
+            AuthManager.sendPasswordResetEmail(email);
         }
     </script>
 
