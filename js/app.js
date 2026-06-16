@@ -1914,7 +1914,7 @@ const App = {
               <div id="ocrUploadButtons" class="ocr-scanner-container" style="text-align: center; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; align-items: center;">
                   <div style="display: flex; gap: 10px; justify-content: center; width: 100%;">
                       <label for="timetableCamera" style="background: linear-gradient(135deg, #6200EA 0%, #B388FF 100%); color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">
-                          🖼️ Upload Image
+                          🖼️ Upload Image <span style="font-size: 12px; font-weight: normal; opacity: 0.85; margin-left: 4px;">(Powered by Google AI)</span>
                       </label>
                       <input type="file" id="timetableCamera" accept="image/*" style="display: none;" onchange="App.handleTimetableUpload(event)">
                   </div>
