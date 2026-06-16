@@ -288,6 +288,14 @@ const App = {
           </div>
         `).join('')}
       </div>
+      ${subjects.length > 1 ? `
+      <div style="background: rgba(179, 136, 255, 0.08); border: 1px solid rgba(179, 136, 255, 0.2); border-radius: 8px; padding: 12px 14px; margin-top: 12px; width: 100%; text-align: left; display: flex; align-items: flex-start; gap: 10px; box-sizing: border-box;">
+          <div style="font-size: 16px; line-height: 1;">💡</div>
+          <div>
+              <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 2px;">Merge Subjects</div>
+              <div style="color: #d0b3ff; font-size: 12px; line-height: 1.4;">Drag and drop one subject onto another to merge both subjects' class names and times.</div>
+          </div>
+      </div>` : ''}
     `;
         // Re-enable delete buttons pointer-events after render
         document.querySelectorAll('.subject-delete-btn').forEach(btn => {
