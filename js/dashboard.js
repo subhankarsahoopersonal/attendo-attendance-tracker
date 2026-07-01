@@ -152,7 +152,7 @@ const DashboardUI = {
    *  NOTICE: null,   // ← no notice, poster area stays empty
    * ============================================================
    */
-  NOTICE: { icon: '📢', title: 'App Update v2.2', text: 'Download now to get access to new features and improvements!' },
+  NOTICE: { icon: '📢', title: 'App Update v2.3', text: 'Download now to get access to new features and improvements!' },
 
   _renderNoticePoster(container) {
     const notice = this.NOTICE;
