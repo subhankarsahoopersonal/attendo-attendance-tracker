@@ -26,3 +26,6 @@ netlify/functions/node_modules/
 # Local dev tools
 local-server.js
 test-api.js
+
+# Audit reports
+audit.md
