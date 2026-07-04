@@ -769,6 +769,42 @@ const App = {
         // Get history for this specific date
         const history = StorageManager.getHistory().filter(h => h.date === dateString);
 
+        // ── Orphan Recovery ──────────────────────────────────────────
+        // Find history entries whose slotId doesn't match any current schedule slot.
+        // These are "orphaned" logs from slots that were deleted and possibly re-added.
+        const scheduleSlotIds = new Set(schedule.map(s => s.id));
+        const orphans = history.filter(h => !scheduleSlotIds.has(h.slotId));
+
+        for (const orphan of orphans) {
+            // Check if a matching schedule slot already exists (same subject + time)
+            // If so, re-link the orphan to that slot instead of showing a separate entry
+            const matchingSlot = schedule.find(
+                s => s.subjectId === orphan.subjectId && s.time === orphan.time
+            );
+            if (matchingSlot) {
+                // Re-link: update the orphan's slotId to the current slot's id
+                orphan.slotId = matchingSlot.id;
+                continue; // This will be picked up by the normal history.find below
+            }
+
+            // No matching slot — show as an orphaned entry
+            const subject = StorageManager.getSubjectById(orphan.subjectId);
+            if (subject) {
+                schedule.push({
+                    id: orphan.slotId,
+                    subjectId: orphan.subjectId,
+                    time: orphan.time || '??:??',
+                    endTime: null,
+                    subject: subject,
+                    isExtra: false,
+                    isOrphan: true
+                });
+            }
+        }
+
+        // Re-sort by time after adding orphans
+        schedule.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
         // Build class list HTML
         let html = '';
 
@@ -780,31 +816,33 @@ const App = {
             `;
         } else {
             html = schedule.map(slot => {
-                const historyEntry = history.find(h => h.slotId === slot.id);
+                const historyEntry = history.find(h => h.slotId === slot.id) 
+                    || history.find(h => h.subjectId === slot.subjectId && h.time === slot.time);
                 const status = historyEntry ? historyEntry.status : null;
                 const extraBadge = slot.isExtra ? '<span style="font-size: var(--font-size-xs); background: var(--accent-primary); color: white; padding: 2px 6px; border-radius: var(--radius-full); margin-left: var(--space-sm);">Extra</span>' : '';
+                const orphanBadge = slot.isOrphan ? '<span style="font-size: var(--font-size-xs); background: var(--color-warning); color: white; padding: 2px 6px; border-radius: var(--radius-full); margin-left: var(--space-sm);">Old Slot</span>' : '';
 
                 return `
-                    <div class="class-item" style="border-bottom: 1px solid var(--border-color); padding: var(--space-sm) 0;">
+                    <div class="class-item" style="border-bottom: 1px solid var(--border-color); padding: var(--space-sm) 0;${slot.isOrphan ? ' opacity: 0.75;' : ''}">
                         <div class="class-info">
                             <div class="class-time">
                                 <span>${slot.time}</span>
                             </div>
                             <div class="class-name">
                                  <span class="subject-color" style="background: ${slot.subject.color}"></span>
-                                 ${slot.subject.name}${extraBadge}
+                                 ${slot.subject.name}${extraBadge}${orphanBadge}
                             </div>
                         </div>
                         <div class="class-actions">
                             <button class="btn btn-attended ${status === 'attended' ? 'active' : ''}" 
-                                    onclick="App.markPastAttendance('${slot.id}', '${slot.subjectId}', 'attended', '${dateString}')"
+                                    onclick="App.markPastAttendance('${slot.id}', '${slot.subjectId}', 'attended', '${dateString}', '${slot.time}')"
                                     title="Attended">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                   <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
                             </button>
                             <button class="btn btn-missed ${status === 'missed' ? 'active' : ''}" 
-                                    onclick="App.markPastAttendance('${slot.id}', '${slot.subjectId}', 'missed', '${dateString}')"
+                                    onclick="App.markPastAttendance('${slot.id}', '${slot.subjectId}', 'missed', '${dateString}', '${slot.time}')"
                                     title="Missed">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -812,7 +850,7 @@ const App = {
                                 </svg>
                             </button>
                             <button class="btn btn-cancelled ${status === 'cancelled' ? 'active' : ''}" 
-                                    onclick="App.markPastAttendance('${slot.id}', '${slot.subjectId}', 'cancelled', '${dateString}')"
+                                    onclick="App.markPastAttendance('${slot.id}', '${slot.subjectId}', 'cancelled', '${dateString}', '${slot.time}')"
                                     title="Cancelled">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                   <circle cx="12" cy="12" r="10"></circle>
@@ -837,8 +875,8 @@ const App = {
         container.innerHTML = html;
     },
 
-    markPastAttendance(slotId, subjectId, status, date) {
-        StorageManager.markAttendance(slotId, subjectId, status, date);
+    markPastAttendance(slotId, subjectId, status, date, time) {
+        StorageManager.markAttendance(slotId, subjectId, status, date, time);
         // Re-render to show active state
         this.renderPastClasses(date);
 

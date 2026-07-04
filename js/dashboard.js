@@ -256,14 +256,14 @@ const DashboardUI = {
           </div>
           <div class="class-actions">
             <button class="btn btn-attended ${slot.status === 'attended' ? 'active' : ''}" 
-                    onclick="DashboardUI.mark('${slot.id}', '${subject.id}', 'attended')">
+                    onclick="DashboardUI.mark('${slot.id}', '${subject.id}', 'attended', '${slot.time}')">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
               Attended
             </button>
             <button class="btn btn-missed ${slot.status === 'missed' ? 'active' : ''}" 
-                    onclick="DashboardUI.mark('${slot.id}', '${subject.id}', 'missed')">
+                    onclick="DashboardUI.mark('${slot.id}', '${subject.id}', 'missed', '${slot.time}')">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -271,7 +271,7 @@ const DashboardUI = {
               Missed
             </button>
             <button class="btn btn-cancelled ${slot.status === 'cancelled' ? 'active' : ''}" 
-                    onclick="DashboardUI.mark('${slot.id}', '${subject.id}', 'cancelled')">
+                    onclick="DashboardUI.mark('${slot.id}', '${subject.id}', 'cancelled', '${slot.time}')">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
@@ -284,6 +284,7 @@ const DashboardUI = {
       // Store slot data for swipe handler
       el.dataset.slotId = slot.id;
       el.dataset.subjectId = subject.id;
+      el.dataset.slotTime = slot.time || '';
 
       container.appendChild(el);
     });
@@ -420,6 +421,7 @@ const DashboardUI = {
 
         const slotId = item.dataset.slotId;
         const subjectId = item.dataset.subjectId;
+        const slotTime = item.dataset.slotTime || null;
 
         if (Math.abs(currentX) >= this.SWIPE_THRESHOLD) {
           // Threshold met — trigger action
@@ -428,7 +430,7 @@ const DashboardUI = {
           // Slide off screen before marking
           content.style.transform = `translateX(${currentX > 0 ? '120%' : '-120%'})`;
           setTimeout(() => {
-            this.mark(slotId, subjectId, action);
+            this.mark(slotId, subjectId, action, slotTime);
           }, 200);
         } else {
           // Snap back
@@ -507,12 +509,12 @@ const DashboardUI = {
   /**
    * Handle attendance marking
    */
-  mark(slotId, subjectId, status) {
+  mark(slotId, subjectId, status, time) {
     // 1. Lock the UI immediately so background fetched can't overwrite it
     isActivelyClicking = true;
 
     // 1. Save to your local cache instantly (Instant UI response)
-    StorageManager.markAttendance(slotId, subjectId, status);
+    StorageManager.markAttendance(slotId, subjectId, status, null, time);
 
     // 🚩 THE DIRTY FLAG: Tell the phone's hard drive we have unsynced data!
     localStorage.setItem('attendo_needs_sync', 'true');

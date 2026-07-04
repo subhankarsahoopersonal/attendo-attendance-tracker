@@ -189,7 +189,7 @@ const Chatbot = {
         }
 
         // Mark the single slot
-        StorageManager.markAttendance(relevantSlots[0].id, subject.id, status);
+        StorageManager.markAttendance(relevantSlots[0].id, subject.id, status, null, relevantSlots[0].time);
         const newStats = AttendanceCalculator.getRawPercentage(StorageManager.getSubjectById(subject.id)).toFixed(1);
 
         return this.response(`Done! Marked **${subject.name}** as ${status}.\nNew Attendance: ${newStats}%`);

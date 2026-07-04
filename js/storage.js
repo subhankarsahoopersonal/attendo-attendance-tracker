@@ -63,6 +63,9 @@ const StorageManager = {
         if (!this.getNotes() || typeof this.getNotes() !== 'object') {
             this.setNotes({});
         }
+
+        // One-time migration to backfill `time` in history and deduplicate
+        this.migrateHistoryV2();
     },
 
     // ========================================
@@ -239,7 +242,9 @@ const StorageManager = {
         // Map recurring classes
         const recurringClasses = todaySlots.map(slot => {
             const subject = subjects.find(s => s.id === slot.subjectId);
-            const historyEntry = todayHistory.find(h => h.slotId === slot.id);
+            // Match by slotId first, then fall back to subjectId + time (survives slot re-creation)
+            const historyEntry = todayHistory.find(h => h.slotId === slot.id)
+                || todayHistory.find(h => h.subjectId === slot.subjectId && h.time === slot.time);
             return {
                 ...slot,
                 subject: subject,
@@ -251,7 +256,9 @@ const StorageManager = {
         // Map extra classes for today
         const extraClasses = this.getExtraClassesForDate(todayDate).map(slot => {
             const subject = subjects.find(s => s.id === slot.subjectId);
-            const historyEntry = todayHistory.find(h => h.slotId === slot.id);
+            // Match by slotId first, then fall back to subjectId + time
+            const historyEntry = todayHistory.find(h => h.slotId === slot.id)
+                || todayHistory.find(h => h.subjectId === slot.subjectId && h.time === slot.time);
             return {
                 ...slot,
                 subject: subject,
@@ -462,29 +469,47 @@ const StorageManager = {
      * @param {string} subjectId 
      * @param {string} status - 'attended', 'missed', 'cancelled'
      * @param {string} date - Optional, defaults to today
+     * @param {string} time - Optional slot start time (HH:MM) for stable dedup
      */
-    markAttendance(slotId, subjectId, status, date = null) {
+    markAttendance(slotId, subjectId, status, date = null, time = null) {
         const today = date || getLocalDateString();
         const history = this.getHistory();
 
-        // Check if already marked today for this slot
-        const existingIndex = history.findIndex(
-            h => h.slotId === slotId && h.date === today
-        );
+        // Resolve time from the timetable slot if not provided
+        if (!time) {
+            time = this._resolveSlotTime(slotId);
+        }
+
+        // Dedup by stable identity: subjectId + date + time
+        // This survives slot removal/re-addition (which changes slotId)
+        let existingIndex = -1;
+        if (time) {
+            existingIndex = history.findIndex(
+                h => h.subjectId === subjectId && h.date === today && h.time === time
+            );
+        }
+        // Fallback to old slotId-based dedup if time is unavailable
+        if (existingIndex === -1) {
+            existingIndex = history.findIndex(
+                h => h.slotId === slotId && h.date === today
+            );
+        }
 
         const entry = {
             id: this.generateId(),
             slotId,
             subjectId,
+            time: time || null,
             status,
             date: today,
             timestamp: new Date().toISOString()
         };
 
         if (existingIndex !== -1) {
-            // Update existing entry - need to reverse the previous action
+            // Update existing entry - reverse the previous action first
             const oldStatus = history[existingIndex].status;
             this.reverseAttendanceAction(subjectId, oldStatus);
+            // Update the entry, keeping the new slotId so future lookups work
             history[existingIndex] = entry;
         } else {
             history.push(entry);
@@ -928,6 +953,80 @@ const StorageManager = {
     // ========================================
     // Utilities
     // ========================================
+
+    /**
+     * Resolve a slot's start time from the current timetable or extra classes
+     * @param {string} slotId
+     * @returns {string|null} HH:MM time or null
+     */
+    _resolveSlotTime(slotId) {
+        // Check recurring timetable
+        const timetable = this.getTimetable();
+        for (const day of Object.keys(timetable)) {
+            const slot = (timetable[day] || []).find(s => s.id === slotId);
+            if (slot) return slot.time;
+        }
+        // Check extra classes
+        const extra = this.getExtraClasses().find(e => e.id === slotId);
+        if (extra) return extra.time;
+        return null;
+    },
+
+    /**
+     * One-time migration: backfill `time` in history entries and deduplicate
+     * Runs once on init, sets a flag so it doesn't repeat.
+     */
+    migrateHistoryV2() {
+        if (localStorage.getItem('bunkManager_migrationV2')) return;
+
+        const history = this.getHistory();
+        if (history.length === 0) {
+            localStorage.setItem('bunkManager_migrationV2', 'true');
+            return;
+        }
+
+        const timetable = this.getTimetable();
+        const extraClasses = this.getExtraClasses();
+
+        // Build a slotId -> time lookup
+        const slotTimeMap = {};
+        for (const day of Object.keys(timetable)) {
+            for (const slot of (timetable[day] || [])) {
+                slotTimeMap[slot.id] = slot.time;
+            }
+        }
+        for (const extra of extraClasses) {
+            slotTimeMap[extra.id] = extra.time;
+        }
+
+        // Backfill time
+        for (const entry of history) {
+            if (!entry.time && slotTimeMap[entry.slotId]) {
+                entry.time = slotTimeMap[entry.slotId];
+            }
+        }
+
+        // Deduplicate: keep the latest entry per (subjectId + date + time)
+        const seen = new Map();
+        const deduped = [];
+        // Process in reverse so we keep the latest entry
+        for (let i = history.length - 1; i >= 0; i--) {
+            const h = history[i];
+            const key = `${h.subjectId}|${h.date}|${h.time || h.slotId}`;
+            if (!seen.has(key)) {
+                seen.set(key, true);
+                deduped.unshift(h);
+            } else {
+                // This is a duplicate — reverse its stats from the subject
+                this.reverseAttendanceAction(h.subjectId, h.status);
+                console.log(`[Migration] Removed duplicate history: ${h.subjectId} on ${h.date} at ${h.time}`);
+            }
+        }
+
+        this.setHistory(deduped);
+        localStorage.setItem('bunkManager_migrationV2', 'true');
+        console.log(`[Migration] History migrated. ${history.length - deduped.length} duplicates removed.`);
+    },
 
     /**
      * Generate unique ID
