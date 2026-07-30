@@ -133,6 +133,9 @@ const AuthManager = {
         const chatFab = document.querySelector('.chat-fab');
         if (chatFab) chatFab.classList.remove('active');
         document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
 
         // Hide loading splash, show login screen
         const splash = document.getElementById('loading-splash');

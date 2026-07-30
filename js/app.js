@@ -157,6 +157,11 @@ const App = {
                 if (sidebarOverlay) sidebarOverlay.classList.toggle('active', isOpen);
                 // Lock/unlock body scroll
                 document.body.style.overflow = isOpen ? 'hidden' : '';
+                if (!isOpen) {
+                    document.body.style.position = '';
+                    document.body.style.width = '';
+                    document.body.style.top = '';
+                }
                 // Close chatbot if open
                 document.querySelector('.chat-window').classList.remove('active');
                 document.querySelector('.chat-fab').classList.remove('active');
@@ -169,6 +174,9 @@ const App = {
                 document.querySelector('.sidebar').classList.remove('open');
                 sidebarOverlay.classList.remove('active');
                 document.body.style.overflow = '';
+                document.body.style.position = '';
+                document.body.style.width = '';
+                document.body.style.top = '';
             }, { signal });
         }
     },
@@ -1046,11 +1054,32 @@ const App = {
         const input = document.getElementById('chat-input');
         const send = document.getElementById('chat-send');
 
+        // Helper: lock body scroll (iOS-safe)
+        const lockBodyScroll = () => {
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+            document.body.style.top = `-${window.scrollY}px`;
+        };
+        // Helper: unlock body scroll and restore position
+        const unlockBodyScroll = () => {
+            const scrollY = document.body.style.top;
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            document.body.style.top = '';
+            window.scrollTo(0, parseInt(scrollY || '0') * -1);
+        };
+
         fab.addEventListener('click', () => {
             chatWin.classList.toggle('active');
             fab.classList.toggle('active');
-            // Lock/unlock body scroll
-            document.body.style.overflow = chatWin.classList.contains('active') ? 'hidden' : '';
+            // Lock/unlock body scroll (iOS-safe)
+            if (chatWin.classList.contains('active')) {
+                lockBodyScroll();
+            } else {
+                unlockBodyScroll();
+            }
             // Close sidebar if open
             document.querySelector('.sidebar').classList.remove('open');
             const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -1061,9 +1090,14 @@ const App = {
             close.addEventListener('click', () => {
                 chatWin.classList.remove('active');
                 fab.classList.remove('active');
-                document.body.style.overflow = '';
+                unlockBodyScroll();
             }, { signal });
         }
+
+        // Prevent background scroll when touching inside the chat window
+        chatWin.addEventListener('touchmove', (e) => {
+            e.stopPropagation();
+        }, { signal, passive: true });
 
         const sendMessage = () => {
             const msg = input.value;
@@ -2375,6 +2409,9 @@ window.handleAndroidBack = function() {
         const sidebarOverlay = document.getElementById('sidebar-overlay');
         if (sidebarOverlay) sidebarOverlay.classList.remove('active');
         document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
         return true;
     }
 
@@ -2384,6 +2421,10 @@ window.handleAndroidBack = function() {
         chatWindow.classList.remove('active');
         const chatFab = document.querySelector('.chat-fab');
         if (chatFab) chatFab.classList.remove('active');
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
         return true;
     }
 

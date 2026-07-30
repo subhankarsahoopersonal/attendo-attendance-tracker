@@ -2289,6 +2289,7 @@ select.form-input option {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    overscroll-behavior: contain;
     z-index: 899;
     opacity: 0;
     visibility: hidden;
@@ -2335,6 +2336,8 @@ select.form-input option {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: var(--space-lg);
     display: flex;
     flex-direction: column;
