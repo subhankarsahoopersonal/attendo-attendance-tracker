@@ -157,14 +157,12 @@ const App = {
                 if (sidebarOverlay) sidebarOverlay.classList.toggle('active', isOpen);
                 // Lock/unlock body scroll
                 document.body.style.overflow = isOpen ? 'hidden' : '';
-                if (!isOpen) {
-                    document.body.style.position = '';
-                    document.body.style.width = '';
-                    document.body.style.top = '';
-                }
                 // Close chatbot if open
-                document.querySelector('.chat-window').classList.remove('active');
-                document.querySelector('.chat-fab').classList.remove('active');
+                const chatWin = document.querySelector('.chat-window');
+                if (chatWin.classList.contains('active')) {
+                    chatWin.classList.remove('active');
+                    document.querySelector('.chat-fab').classList.remove('active');
+                }
             }, { signal });
         }
 
@@ -174,9 +172,6 @@ const App = {
                 document.querySelector('.sidebar').classList.remove('open');
                 sidebarOverlay.classList.remove('active');
                 document.body.style.overflow = '';
-                document.body.style.position = '';
-                document.body.style.width = '';
-                document.body.style.top = '';
             }, { signal });
         }
     },
@@ -1054,21 +1049,16 @@ const App = {
         const input = document.getElementById('chat-input');
         const send = document.getElementById('chat-send');
 
-        // Helper: lock body scroll (iOS-safe)
+        // Helper: lock body scroll (prevents background scrolling while chat is open)
+        // NOTE: We only use overflow:hidden — NOT position:fixed — because
+        // position:fixed on the body causes the page to jump to the top.
+        // The chat elements are already position:fixed so they don't need body repositioning.
         const lockBodyScroll = () => {
             document.body.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.width = '100%';
-            document.body.style.top = `-${window.scrollY}px`;
         };
-        // Helper: unlock body scroll and restore position
+        // Helper: unlock body scroll
         const unlockBodyScroll = () => {
-            const scrollY = document.body.style.top;
             document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.width = '';
-            document.body.style.top = '';
-            window.scrollTo(0, parseInt(scrollY || '0') * -1);
         };
 
         fab.addEventListener('click', () => {
@@ -2409,9 +2399,6 @@ window.handleAndroidBack = function() {
         const sidebarOverlay = document.getElementById('sidebar-overlay');
         if (sidebarOverlay) sidebarOverlay.classList.remove('active');
         document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.top = '';
         return true;
     }
 
@@ -2422,9 +2409,6 @@ window.handleAndroidBack = function() {
         const chatFab = document.querySelector('.chat-fab');
         if (chatFab) chatFab.classList.remove('active');
         document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.top = '';
         return true;
     }
 
