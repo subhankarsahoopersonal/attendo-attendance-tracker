@@ -1084,6 +1084,16 @@ const App = {
             }, { signal });
         }
 
+        // Close chatbot when tapping outside of it
+        document.addEventListener('click', (e) => {
+            if (!chatWin.classList.contains('active')) return;
+            // Don't close if the click is inside the chat window or on the FAB
+            if (chatWin.contains(e.target) || fab.contains(e.target)) return;
+            chatWin.classList.remove('active');
+            fab.classList.remove('active');
+            unlockBodyScroll();
+        }, { signal });
+
         // Prevent background scroll when touching inside the chat window
         chatWin.addEventListener('touchmove', (e) => {
             e.stopPropagation();
