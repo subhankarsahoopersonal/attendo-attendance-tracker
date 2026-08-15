@@ -1099,17 +1099,25 @@ const App = {
             e.stopPropagation();
         }, { signal, passive: true });
 
-        const sendMessage = () => {
+        const sendMessage = async () => {
             const msg = input.value;
             if (!msg) return;
 
             this.addChatMessage(msg, 'user');
             input.value = '';
 
-            setTimeout(() => {
-                const response = Chatbot.process(msg);
-                this.addChatMessage(response.text, 'bot');
-            }, 600);
+            // Show typing indicator while AI processes
+            this.showTypingIndicator();
+
+            try {
+                const response = await AIChatbot.process(msg);
+                this.hideTypingIndicator();
+                this.addChatMessage(response.text, 'bot', response.source);
+            } catch (e) {
+                this.hideTypingIndicator();
+                // Ultimate safety net — should never reach here due to AIChatbot's internal fallback
+                this.addChatMessage("Something went wrong. Please try again.", 'bot', 'logic');
+            }
         };
 
         send.addEventListener('click', sendMessage, { signal });
@@ -1118,13 +1126,41 @@ const App = {
         }, { signal });
     },
 
-    addChatMessage(text, sender) {
+    addChatMessage(text, sender, source = null) {
         const container = document.querySelector('.chat-messages');
         const div = document.createElement('div');
         div.className = `chat-message ${sender}`;
-        div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+
+        let html = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/_(.*?)_/g, '<em>$1</em>')
+            .replace(/\n/g, '<br>');
+
+        // Add source badge for bot messages
+        if (sender === 'bot' && source) {
+            const badges = {
+                ai: '<span class="chat-badge ai">✨ AI</span>',
+                logic: '<span class="chat-badge logic">⚡ Logic</span>',
+                logic_fallback: '<span class="chat-badge fallback">⚡ Fallback</span>'
+            };
+            html = (badges[source] || '') + html;
+        }
+
+        div.innerHTML = html;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
+    },
+
+    showTypingIndicator() {
+        const el = document.getElementById('chat-typing');
+        if (el) el.style.display = 'block';
+        const container = document.querySelector('.chat-messages');
+        if (container) container.scrollTop = container.scrollHeight;
+    },
+
+    hideTypingIndicator() {
+        const el = document.getElementById('chat-typing');
+        if (el) el.style.display = 'none';
     },
 
     // ========================================

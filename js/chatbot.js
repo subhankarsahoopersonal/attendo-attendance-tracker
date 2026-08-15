@@ -1,9 +1,10 @@
 /**
- * Logic-Based Chatbot
- * Handles natural language queries using pattern matching
+ * Logic-Based Chatbot (formerly "Chatbot")
+ * Handles natural language queries using pattern matching.
+ * Renamed to LogicBot to distinguish from the AI-powered AIChatbot wrapper.
  */
 
-const Chatbot = {
+const LogicBot = {
 
     /**
      * Process user message
@@ -246,5 +247,125 @@ const Chatbot = {
         msg += `\n\n**Summary:** ${safeCount}/${totalCount} subjects safe to skip.`;
 
         return this.response(msg);
+    }
+};
+
+
+// ========================================
+// AI Chatbot Wrapper (RAG via Gemini 1.5 Flash)
+// ========================================
+
+/**
+ * Fix 11: Manual YYYY-MM-DD formatter — safe on all Android WebViews.
+ * toLocaleDateString('en-CA') is unreliable on older System WebViews.
+ */
+function getLocalDateISO() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+const AIChatbot = {
+    TIMEOUT_MS: 9000, // Changed from 30000 to 9000 (9 seconds)
+
+    /**
+     * Process user message — tries AI first, falls back to LogicBot.
+     * @param {string} message
+     * @returns {Promise<Object>} Response object { text, timestamp, sender, source }
+     */
+    async process(message) {
+        const cleanMsg = message.toLowerCase().trim();
+
+        // Action commands bypass AI entirely (read-only AI policy)
+        if (this.isActionCommand(cleanMsg)) {
+            return { ...LogicBot.process(message), source: 'logic' };
+        }
+
+        // Try AI with 30s hard timeout
+        try {
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                // Not logged in — can't call backend
+                return { ...LogicBot.process(message), source: 'logic' };
+            }
+
+            const token = await user.getIdToken();
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), this.TIMEOUT_MS);
+
+            const res = await fetch('/.netlify/functions/chatbot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    message,
+                    localDate: getLocalDateISO(),          // Fix 11: always YYYY-MM-DD
+                    timezoneOffset: new Date().getTimezoneOffset()
+                }),
+                signal: controller.signal
+            });
+            clearTimeout(timeout);
+
+            const data = await res.json();
+
+            if (data.fallback) {
+                return this.fallback(message, data.reason);
+            }
+
+            return {
+                text: data.response,
+                timestamp: new Date().toISOString(),
+                sender: 'bot',
+                source: 'ai'
+            };
+        } catch (e) {
+            // Network error, timeout, or any failure → graceful fallback
+            const reason = e.name === 'AbortError' ? 'timeout' : 'error';
+            return this.fallback(message, reason);
+        }
+    },
+
+    /**
+     * Determines if a message is a direct action command (should go to LogicBot).
+     * Question patterns are checked FIRST — if it looks like a question, always route to AI.
+     * "Should I attend tomorrow?" → AI (starts with "should")
+     * "I attended Physics" → LogicBot (imperative action, no question pattern)
+     */
+    isActionCommand(msg) {
+        const cleanMsg = msg.toLowerCase().trim();
+
+        // 1. If it ends with '?' or starts with a question/advisory word, ALWAYS route to AI
+        const isQuestion = /\?$/.test(cleanMsg) ||
+            /^(can|how|what|which|why|when|where|tell|show|did|do|does|is|are|should|would|could|will|am|if)/i.test(cleanMsg);
+
+        if (isQuestion) return false; // Force route to AI
+
+        // 2. Also check for question words anywhere in the sentence
+        const hasQuestionWord = /(can i|how|what|which|why|when|where|tell|show|did|do|does|is|are|should|would|could)/i.test(cleanMsg);
+        if (hasQuestionWord) return false;
+
+        // 3. Direct imperative actions (e.g., "I bunked physics", "Cancel math", "Mark physics as attended")
+        const hasActionKeyword = /(bunk|bunked|miss|missed|attend|attended|cancel|cancelled|canceled|mark|went to)/i.test(cleanMsg);
+
+        return hasActionKeyword;
+    },
+
+    /**
+     * Graceful fallback — delegates to LogicBot with a contextual note.
+     */
+    fallback(message, reason) {
+        const response = LogicBot.process(message);
+        const notes = {
+            timeout: '⚡ AI was too slow — answered by Logic Bot',
+            rate_limited: '⚡ AI is busy — answered by Logic Bot',
+            error: '⚡ AI unavailable — answered by Logic Bot'
+        };
+        response.text += `\n\n_${notes[reason] || notes.error}_`;
+        response.source = 'logic_fallback';
+        return response;
     }
 };

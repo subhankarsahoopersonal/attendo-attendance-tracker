@@ -484,7 +484,7 @@
                 <img src="assets/logo.png" alt="AttenDO" class="chat-avatar" style="object-fit: contain; padding: 6px; background: var(--bg-card);">
                 <div class="chat-info">
                     <h3>AttenDO</h3>
-                    <p>Logic Bot</p>
+                    <p>AI Assistant</p>
                 </div>
                 <div class="chat-minimize" style="margin-left: auto; cursor: pointer;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -494,8 +494,12 @@
             </div>
             <div class="chat-messages">
                 <div class="chat-message bot">
-                    Hello! I can help you calculate your safe bunks or check your attendance status. Try asking "Can I
-                    skip Physics?".
+                    Hello! I'm your AI-powered attendance advisor. Ask me anything about your attendance — try "Can I skip Physics?" or "What's my worst subject?"
+                </div>
+                <div class="chat-typing" id="chat-typing" style="display: none;">
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
                 </div>
             </div>
             <div class="chat-quick-actions">
@@ -507,6 +511,10 @@
                 <div class="quick-action"
                     onclick="document.getElementById('chat-input').value='My Status';document.getElementById('chat-send').click();">
                     My Status
+                </div>
+                <div class="quick-action"
+                    onclick="document.getElementById('chat-input').value='Weekly summary of my attendance';document.getElementById('chat-send').click();">
+                    📊 Weekly Summary
                 </div>
             </div>
             <div class="chat-input-container">
