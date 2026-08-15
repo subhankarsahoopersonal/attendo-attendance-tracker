@@ -3,6 +3,8 @@
  * Handles Google + Email/Password auth via Firebase
  */
 
+emailjs.init("d5fP9EFxH_SwavYXW");
+
 const AuthManager = {
     currentUser: null,
 
@@ -186,6 +188,20 @@ const AuthManager = {
             if (displayName) {
                 await result.user.updateProfile({ displayName });
             }
+
+            // Send the Welcome Email
+            const templateParams = {
+                to_email: result.user.email,
+                name: displayName || 'there',
+                action_url: 'https://attendotracker.netlify.app'
+            };
+
+            emailjs.send("service_9qopo5s", "template_0afqcls", templateParams)
+                .then(function (response) {
+                    console.log('Welcome email sent successfully!', response.status, response.text);
+                }, function (error) {
+                    console.error('Failed to send welcome email...', error);
+                });
         } catch (error) {
             this.showError(this.friendlyError(error.code));
         } finally {
