@@ -866,16 +866,44 @@ const App = {
             }).join('');
         }
 
-        // Add "Add Extra Class" button at the bottom
+        const todayStr = getLocalDateString();
+        const isNextDisabled = dateString >= todayStr;
+
+        // Add "Add Extra Class" button and date navigation at the bottom
         html += `
-            <div style="margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border-color);">
-                <button class="btn btn-secondary" onclick="App.openExtraClassModal('${dateString}')">
-                    ➕ Add Extra Class for this date
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border-color); gap: var(--space-sm);">
+                <button class="btn btn-secondary" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" onclick="App.openExtraClassModal('${dateString}')">
+                    ➕ Add Extra Class
                 </button>
+                <div style="display: flex; gap: var(--space-xs);">
+                    <button class="btn btn-secondary btn-icon" onclick="App.changePastDate(-1)" title="Previous Day" style="padding: var(--space-sm);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <button class="btn btn-secondary btn-icon" onclick="App.changePastDate(1)" title="Next Day" style="padding: var(--space-sm); ${isNextDisabled ? 'opacity: 0.5; cursor: not-allowed;' : ''}" ${isNextDisabled ? 'disabled' : ''}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
             </div>
         `;
 
         container.innerHTML = html;
+    },
+
+    changePastDate(offset) {
+        const dateInput = document.getElementById('past-date-picker');
+        if (!dateInput) return;
+
+        const currentDate = new Date(dateInput.value);
+        currentDate.setDate(currentDate.getDate() + offset);
+        
+        const newDateStr = getLocalDateString(currentDate);
+        const todayStr = getLocalDateString();
+        
+        // Prevent going into the future
+        if (newDateStr > todayStr) return;
+        
+        dateInput.value = newDateStr;
+        this.renderPastClasses(newDateStr);
     },
 
     markPastAttendance(slotId, subjectId, status, date, time) {
