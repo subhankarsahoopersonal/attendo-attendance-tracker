@@ -5,6 +5,26 @@
 
 emailjs.init("d5fP9EFxH_SwavYXW");
 
+/**
+ * Send welcome email to a new user via EmailJS
+ * @param {string} email - The user's email address
+ * @param {string} name - The user's display name
+ */
+function sendWelcomeEmail(email, name) {
+    const templateParams = {
+        to_email: email,
+        name: name || 'there',
+        action_url: 'https://attendotracker.netlify.app'
+    };
+
+    emailjs.send("service_9qopo5s", "template_0afqcls", templateParams)
+        .then(function (response) {
+            console.log('Welcome email sent successfully!', response.status, response.text);
+        }, function (error) {
+            console.error('Failed to send welcome email...', error);
+        });
+}
+
 const AuthManager = {
     currentUser: null,
 
@@ -190,18 +210,7 @@ const AuthManager = {
             }
 
             // Send the Welcome Email
-            const templateParams = {
-                to_email: result.user.email,
-                name: displayName || 'there',
-                action_url: 'https://attendotracker.netlify.app'
-            };
-
-            emailjs.send("service_9qopo5s", "template_0afqcls", templateParams)
-                .then(function (response) {
-                    console.log('Welcome email sent successfully!', response.status, response.text);
-                }, function (error) {
-                    console.error('Failed to send welcome email...', error);
-                });
+            sendWelcomeEmail(result.user.email, displayName);
         } catch (error) {
             this.showError(this.friendlyError(error.code));
         } finally {
@@ -336,6 +345,13 @@ window.handleGoogleLoginClick = function () {
         const provider = new firebase.auth.GoogleAuthProvider();
 
         firebase.auth().signInWithPopup(provider)
+            .then((result) => {
+                // Send welcome email only for brand-new Google users
+                if (result.additionalUserInfo && result.additionalUserInfo.isNewUser) {
+                    const user = result.user;
+                    sendWelcomeEmail(user.email, user.displayName);
+                }
+            })
             .catch((error) => {
                 if (error.code === 'auth/account-exists-with-different-credential') {
                     // Same email exists with email/password — show linking prompt
@@ -361,6 +377,12 @@ window.receiveNativeGoogleToken = function (idToken) {
     firebase.auth().signInWithCredential(credential)
         .then((result) => {
             console.log("Success! Firebase session created via Native Bridge.");
+
+            // Send welcome email only for brand-new Google users (Android)
+            if (result.additionalUserInfo && result.additionalUserInfo.isNewUser) {
+                const user = result.user;
+                sendWelcomeEmail(user.email, user.displayName);
+            }
         })
         .catch((error) => {
             if (error.code === 'auth/account-exists-with-different-credential') {
