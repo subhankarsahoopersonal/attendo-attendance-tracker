@@ -386,6 +386,33 @@ body::before {
 
 .login-screen .form-group {
     margin-bottom: var(--space-md);
+    position: relative;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    z-index: 10;
+}
+
+.password-toggle-btn:hover {
+    color: var(--text-primary);
+}
+
+.eye-icon {
+    width: 20px;
+    height: 20px;
 }
 
 /* Auth Toggle */
