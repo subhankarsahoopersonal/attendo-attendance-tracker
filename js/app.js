@@ -1152,6 +1152,17 @@ const App = {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         }, { signal });
+
+        input.addEventListener('input', (e) => {
+            const quickActions = document.getElementById('chat-quick-actions');
+            if (quickActions) {
+                if (input.value.startsWith('/')) {
+                    quickActions.style.display = 'flex';
+                } else {
+                    quickActions.style.display = 'none';
+                }
+            }
+        }, { signal });
     },
 
     addChatMessage(text, sender, source = null) {

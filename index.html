@@ -528,18 +528,18 @@
                     </div>
                 </div>
             </div>
-            <div class="chat-quick-actions">
+            <div class="chat-quick-actions" id="chat-quick-actions" style="display: none;">
                 <div class="quick-action"
-                    onclick="document.getElementById('chat-input').value='Can I bunk today?';document.getElementById('chat-send').click();">
+                    onclick="document.getElementById('chat-input').value='Can I bunk today?';document.getElementById('chat-send').click();document.getElementById('chat-quick-actions').style.display='none';">
                     Bunk Today?</div>
-                <div class="quick-action" onclick="document.getElementById('chat-input').value='Can I skip?';">Can I
+                <div class="quick-action" onclick="document.getElementById('chat-input').value='Can I skip?';document.getElementById('chat-quick-actions').style.display='none';">Can I
                     skip?</div>
                 <div class="quick-action"
-                    onclick="document.getElementById('chat-input').value='My Status';document.getElementById('chat-send').click();">
+                    onclick="document.getElementById('chat-input').value='My Status';document.getElementById('chat-send').click();document.getElementById('chat-quick-actions').style.display='none';">
                     My Status
                 </div>
                 <div class="quick-action"
-                    onclick="document.getElementById('chat-input').value='Weekly summary of my attendance';document.getElementById('chat-send').click();">
+                    onclick="document.getElementById('chat-input').value='Weekly summary of my attendance';document.getElementById('chat-send').click();document.getElementById('chat-quick-actions').style.display='none';">
                     📊 Weekly Summary
                 </div>
             </div>
