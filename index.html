@@ -519,8 +519,18 @@
                 </div>
             </div>
             <div class="chat-messages">
-                <div class="chat-message bot">
-                    Hello! I'm your AI-powered attendance advisor. Ask me anything about your attendance — try "Can I skip Physics?" or "What's my worst subject?"
+                <div class="chat-message bot chat-welcome">
+                    <p style="margin: 0 0 6px; font-size: 1.1rem;">👋</p>
+                    <p style="margin: 0 0 14px; line-height: 1.6;">
+                        <strong>Hey there!</strong> I'm your attendance advisor.<br>
+                        Ask me anything — or tap below to get started.
+                    </p>
+                    <div class="chat-suggestions">
+                        <button class="chat-suggestion" onclick="document.getElementById('chat-input').value='Can I bunk today?';document.getElementById('chat-send').click();">🚀 Can I bunk today?</button>
+                        <button class="chat-suggestion" onclick="document.getElementById('chat-input').value='My Status';document.getElementById('chat-send').click();">📊 My Status</button>
+                        <button class="chat-suggestion" onclick="document.getElementById('chat-input').value='Weekly summary of my attendance';document.getElementById('chat-send').click();">✨ Weekly Recap</button>
+                    </div>
+                    <p class="chat-hint">Type <kbd>/</kbd> for more commands</p>
                 </div>
                 <div class="chat-typing" id="chat-typing" style="display: none;">
                     <div class="typing-dots">
