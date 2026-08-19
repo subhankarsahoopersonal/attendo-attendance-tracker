@@ -608,12 +608,12 @@ const DashboardUI = {
       this._useCounter = false;
       this.animateNumber(elSafe, safeSubjects, '', 0, 80);
       this.animateNumber(elTotal, totalSubjects, '', 0, 80);
-      this.animateNumber(elAttended, totalClasses, '', 0, 40);
+      this.animateNumber(elAttended, totalAttended, `/${totalClasses}`, 0, 40);
       this.animateNumber(elOverall, overallPercentage, '%', 1, 70);
     } else {
       if (elSafe) elSafe.textContent = safeSubjects;
       if (elTotal) elTotal.textContent = totalSubjects;
-      if (elAttended) elAttended.textContent = totalClasses;
+      if (elAttended) elAttended.textContent = `${totalAttended}/${totalClasses}`;
       if (elOverall) elOverall.textContent = `${overallPercentage}%`;
     }
 
