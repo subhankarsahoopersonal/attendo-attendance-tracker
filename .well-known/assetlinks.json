@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.subha.attendo",
+    "sha256_cert_fingerprints": [
+      "98:8C:B4:A7:67:10:31:52:14:09:7D:B8:AD:F7:90:FF:A7:0B:30:95:4E:CB:0F:A2:AA:14:3C:06:0D:A9:A5:3D"
+    ]
+  }
+}]

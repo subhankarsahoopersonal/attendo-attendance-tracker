@@ -4,3 +4,9 @@
 [dev]
   publish = "."
   port = 8888
+
+[[headers]]
+  for = "/.well-known/*"
+  [headers.values]
+    Content-Type = "application/json"
+    Access-Control-Allow-Origin = "*"
