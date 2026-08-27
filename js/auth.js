@@ -95,7 +95,19 @@ const AuthManager = {
                     DashboardUI.init();
                 }
             } else {
-                await FirestoreSync.pushAll(user.uid);
+                // 🛡️ CIRCUIT BREAKER: Never push empty data to the cloud!
+                const localSubjects = localStorage.getItem('bunkManager_subjects');
+                const hasLocalData = localSubjects && JSON.parse(localSubjects).length > 0;
+
+                if (hasLocalData) {
+                    // Local data exists → safe to push to empty cloud
+                    await FirestoreSync.pushAll(user.uid);
+                } else {
+                    // BOTH are empty — brand new user or network error.
+                    // Do NOT push. Just initialize defaults locally.
+                    console.warn("⚠️ Circuit breaker: No cloud or local data. Refusing to push empty state.");
+                    StorageManager.init();
+                }
             }
         } catch (err) {
             console.error('Firestore sync error during login:', err);
