@@ -65,13 +65,13 @@ const AuthManager = {
         localStorage.setItem('attendo_vip_pass', 'true');
 
         // 📲 Upload any FCM token that was saved while the user was logged out
-        const pendingToken = localStorage.getItem('pending_fcm_token');
+        const pendingToken = localStorage.getItem("pending_fcm_token");
         if (pendingToken) {
             try {
-                await db.collection('users').doc(user.uid).set({
+                await firebase.firestore().collection('users').doc(user.uid).set({
                     fcmToken: pendingToken
                 }, { merge: true });
-                localStorage.removeItem('pending_fcm_token');
+                localStorage.removeItem("pending_fcm_token");
                 console.log('Pending FCM token uploaded to Firestore!');
             } catch (err) {
                 console.error('Failed to upload pending FCM token:', err);
@@ -424,25 +424,22 @@ window.receiveNativeGoogleToken = function (idToken) {
 
 // 3. Triggered by Android to save the device's FCM push-notification token
 window.saveAndroidToken = async function(token) {
-    // 🚨 DIAGNOSTIC 1: Did Android reach the website?
-    alert("1. SUCCESS: Website received token from Android!");
+    console.log("1. Token received from Android!");
     
-    const user = auth.currentUser; 
+    // SAFE COMPAT FIX: Call firebase directly to avoid variable scope crashes
+    const user = firebase.auth().currentUser; 
     
     if (user) {
         try {
-            alert("2. User is logged in as: " + user.uid);
-            await db.collection('users').doc(user.uid).set({
+            await firebase.firestore().collection('users').doc(user.uid).set({
                 fcmToken: token
             }, { merge: true });
-            // 🚨 DIAGNOSTIC 2: Did it save?
-            alert("3. SUCCESS: Token saved to Firestore!");
+            console.log("2. SUCCESS: Token saved to Firestore!");
         } catch (error) {
-            alert("ERROR saving to Firestore: " + error.message);
+            console.error("ERROR saving to Firestore: ", error);
         }
     } else {
-        // 🚨 DIAGNOSTIC 3: Caught in the Auth state trap?
-        alert("2. User appears logged out. Saving to localStorage.");
+        console.log("2. User logged out. Stashing token.");
         localStorage.setItem("pending_fcm_token", token);
     }
 };
