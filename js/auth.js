@@ -64,6 +64,20 @@ const AuthManager = {
 
         localStorage.setItem('attendo_vip_pass', 'true');
 
+        // 📲 Upload any FCM token that was saved while the user was logged out
+        const pendingToken = localStorage.getItem('pending_fcm_token');
+        if (pendingToken) {
+            try {
+                await db.collection('users').doc(user.uid).set({
+                    fcmToken: pendingToken
+                }, { merge: true });
+                localStorage.removeItem('pending_fcm_token');
+                console.log('Pending FCM token uploaded to Firestore!');
+            } catch (err) {
+                console.error('Failed to upload pending FCM token:', err);
+            }
+        }
+
         // 🚀 THE FIX: Boot the app IMMEDIATELY using the local StorageManager cache!
         App.init();
 
@@ -406,6 +420,24 @@ window.receiveNativeGoogleToken = function (idToken) {
                 AuthManager.showError(error.message);
             }
         });
+};
+
+// 3. Triggered by Android to save the device's FCM push-notification token
+window.saveAndroidToken = async function (token) {
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            await db.collection('users').doc(user.uid).set({
+                fcmToken: token
+            }, { merge: true });
+            console.log('FCM Token saved to Firestore!');
+        } catch (error) {
+            console.error('Error saving token:', error);
+        }
+    } else {
+        // If the app opens but the user isn't logged in yet, stash locally
+        localStorage.setItem('pending_fcm_token', token);
+    }
 };
 
 // ======================================================================
