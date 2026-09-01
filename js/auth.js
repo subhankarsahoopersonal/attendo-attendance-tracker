@@ -423,20 +423,27 @@ window.receiveNativeGoogleToken = function (idToken) {
 };
 
 // 3. Triggered by Android to save the device's FCM push-notification token
-window.saveAndroidToken = async function (token) {
-    const user = auth.currentUser;
+window.saveAndroidToken = async function(token) {
+    // 🚨 DIAGNOSTIC 1: Did Android reach the website?
+    alert("1. SUCCESS: Website received token from Android!");
+    
+    const user = auth.currentUser; 
+    
     if (user) {
         try {
+            alert("2. User is logged in as: " + user.uid);
             await db.collection('users').doc(user.uid).set({
                 fcmToken: token
             }, { merge: true });
-            console.log('FCM Token saved to Firestore!');
+            // 🚨 DIAGNOSTIC 2: Did it save?
+            alert("3. SUCCESS: Token saved to Firestore!");
         } catch (error) {
-            console.error('Error saving token:', error);
+            alert("ERROR saving to Firestore: " + error.message);
         }
     } else {
-        // If the app opens but the user isn't logged in yet, stash locally
-        localStorage.setItem('pending_fcm_token', token);
+        // 🚨 DIAGNOSTIC 3: Caught in the Auth state trap?
+        alert("2. User appears logged out. Saving to localStorage.");
+        localStorage.setItem("pending_fcm_token", token);
     }
 };
 
