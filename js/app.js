@@ -205,6 +205,38 @@ const App = {
         // Simple hash routing
         const hash = window.location.hash.slice(1) || 'dashboard';
         this.navigate(hash);
+
+        // Deep-link scroll: ?scrollTo=elementId
+        // Used by the Android WebView to jump directly to a specific element.
+        // We navigate to the correct page first, wait for the DOM to render,
+        // then scroll the element into view.
+        const params = new URLSearchParams(window.location.search);
+        const scrollTarget = params.get('scrollTo');
+        if (scrollTarget) {
+            // Determine which page the target element belongs to
+            const el = document.getElementById(scrollTarget);
+            if (el) {
+                const section = el.closest('section[id$="-section"]');
+                if (section) {
+                    const pageId = section.id.replace('-section', '');
+                    this.navigate(pageId);
+                }
+            }
+
+            // Wait for the page to finish rendering, then scroll
+            setTimeout(() => {
+                const targetEl = document.getElementById(scrollTarget);
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Premium glow highlight so the user sees what was targeted
+                    targetEl.classList.add('scroll-target-highlight');
+                    targetEl.addEventListener('animationend', () => {
+                        targetEl.classList.remove('scroll-target-highlight');
+                    }, { once: true });
+                }
+            }, 300);
+        }
     },
 
     // ========================================
