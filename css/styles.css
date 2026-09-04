@@ -2574,10 +2574,14 @@ select.form-input option {
 }
 
 @keyframes typing-bounce {
-    0%, 60%, 100% {
+
+    0%,
+    60%,
+    100% {
         transform: translateY(0);
         opacity: 0.4;
     }
+
     30% {
         transform: translateY(-8px);
         opacity: 1;
@@ -3481,7 +3485,8 @@ select.form-input option {
     }
 
     /* Timetable single column on mobile/tablet */
-    #timetable-grid-content, .timetable-grid-view {
+    #timetable-grid-content,
+    .timetable-grid-view {
         display: flex !important;
         flex-direction: column !important;
         width: 100% !important;
@@ -3678,10 +3683,12 @@ select.form-input option {
         grid-template-columns: 1fr 1fr auto !important;
         gap: var(--space-xs);
     }
+
     .qs-slot-row select {
         grid-column: 1 / -1 !important;
         width: 100% !important;
     }
+
     .qs-slot-row input[type="time"],
     .qs-slot-row input[type="text"] {
         width: 100% !important;

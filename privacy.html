@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy — AttenDO</title>
-    <meta name="description" content="Privacy Policy for AttenDO Attendance Tracker. Learn how we collect, use, and protect your personal data.">
+    <meta name="description"
+        content="Privacy Policy for AttenDO Attendance Tracker. Learn how we collect, use, and protect your personal data.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="assets/logo.png" type="image/png">
     <link rel="stylesheet" href="css/styles.css">
@@ -195,12 +196,17 @@
         <div class="legal-hero">
             <span class="legal-icon">🔒</span>
             <h1>Privacy Policy</h1>
-            <p class="legal-meta">Effective Date: January 1, 2026 · Last Updated: January 1, 2026</p>
+            <p class="legal-meta">Effective Date: January 1, 2026 · Last Updated: September 4, 2026</p>
         </div>
 
         <div class="legal-section">
             <div class="legal-highlight">
-                <p>AttenDO ("we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use the AttenDO attendance tracker application ("the Service") available at <a href="https://attendotracker.netlify.app">attendotracker.netlify.app</a>.</p>
+                <p>AttenDO ("we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains
+                    how we collect, use, store, and protect your personal information when you use the AttenDO
+                    attendance tracker application ("the Service") available at <a
+                        href="https://attendotracker.netlify.app">attendotracker.netlify.app</a> and through the
+                    AttenDO Android app (<code>com.subha.attendo</code>). This policy applies equally across all
+                    platforms.</p>
             </div>
         </div>
 
@@ -243,6 +249,16 @@
                         <td>Schedule management and attendance calculation</td>
                         <td>Yes (for app function)</td>
                     </tr>
+                    <tr>
+                        <td>Chat messages</td>
+                        <td>AI chatbot queries processed by Google Gemini API</td>
+                        <td>No (optional feature)</td>
+                    </tr>
+                    <tr>
+                        <td>Uploaded timetable images</td>
+                        <td>AI-powered timetable scanning via Google Gemini Vision API</td>
+                        <td>No (optional feature)</td>
+                    </tr>
                 </tbody>
             </table>
 
@@ -253,6 +269,7 @@
                 <li>Device type, browser type, and operating system</li>
                 <li>Approximate geographic location (country/region level)</li>
                 <li>Session duration and interaction patterns</li>
+                <li>Browser notification permission status (granted, denied, or default)</li>
             </ul>
             <p>This data is collected in aggregate form and cannot be used to identify individual users.</p>
         </div>
@@ -261,13 +278,26 @@
             <h2>2. How We Use Your Information</h2>
             <p>We use the collected information solely for the following purposes:</p>
             <ul>
-                <li><strong>Providing the Service:</strong> Tracking your attendance, calculating statistics, managing your timetable, and displaying your dashboard.</li>
-                <li><strong>Authentication:</strong> Creating and managing your account via email/password or Google Sign-In.</li>
-                <li><strong>Personalization:</strong> Displaying birthday greetings and customized dashboard content.</li>
-                <li><strong>Service Improvement:</strong> Analyzing aggregate usage patterns to improve features and user experience.</li>
-                <li><strong>Data Synchronization:</strong> Syncing your attendance data across devices when signed in.</li>
+                <li><strong>Providing the Service:</strong> Tracking your attendance, calculating statistics, managing
+                    your timetable, and displaying your dashboard.</li>
+                <li><strong>Authentication:</strong> Creating and managing your account via email/password or Google
+                    Sign-In.</li>
+                <li><strong>Personalization:</strong> Displaying birthday greetings and customized dashboard content.
+                </li>
+                <li><strong>AI-Powered Features:</strong> Processing your attendance data and chat messages through
+                    Google's Gemini AI to provide intelligent chatbot responses. Processing uploaded timetable images
+                    through Google's Gemini Vision AI for automated schedule extraction.</li>
+                <li><strong>Communications:</strong> Sending a one-time welcome email upon account registration via
+                    EmailJS.</li>
+                <li><strong>Notifications:</strong> Sending browser push notifications for class reminders, attendance
+                    threshold warnings, and daily attendance marking reminders (with your permission).</li>
+                <li><strong>Service Improvement:</strong> Analyzing aggregate usage patterns to improve features and
+                    user experience.</li>
+                <li><strong>Data Synchronization:</strong> Syncing your attendance data across devices when signed in.
+                </li>
             </ul>
-            <p>We do <strong>not</strong> use your personal information for advertising, profiling, or selling to third parties.</p>
+            <p>We do <strong>not</strong> use your personal information for advertising, profiling, or selling to third
+                parties.</p>
         </div>
 
         <div class="legal-section">
@@ -294,6 +324,11 @@
                         <td>Cloud sync and data persistence</td>
                     </tr>
                     <tr>
+                        <td>Netlify Functions (Netlify Inc. / AWS Lambda)</td>
+                        <td>Chat messages, uploaded images (transient — RAM only)</td>
+                        <td>Server-side AI chatbot and timetable scanning processing</td>
+                    </tr>
+                    <tr>
                         <td>Browser localStorage</td>
                         <td>Cached attendance data, preferences</td>
                         <td>Offline access and performance</td>
@@ -306,9 +341,22 @@
             <ul>
                 <li>All data transmitted between your browser and our servers is encrypted via HTTPS/TLS.</li>
                 <li>Firebase Authentication handles credential storage using industry-standard security practices.</li>
-                <li>Firestore Security Rules restrict data access to authenticated users viewing only their own data.</li>
+                <li>Firestore Security Rules restrict data access to authenticated users viewing only their own data.
+                </li>
                 <li>We do not store passwords in plaintext — authentication is managed entirely by Firebase.</li>
+                <li>Serverless functions (AI chatbot and timetable scanning) are entirely stateless. Uploaded images and
+                    chat messages exist only in function memory (RAM) during processing and are destroyed immediately
+                    when the function completes. No images or chat content is persisted on our servers.</li>
+                <li>AI requests are authenticated server-side using Firebase auth tokens to prevent unauthorized
+                    access.</li>
             </ul>
+
+            <h3>3.3 AI Data Processing & Retention</h3>
+            <p>When you use AI-powered features (chatbot or timetable scanning), your data is transmitted to Google's
+                Gemini API for processing. Google retains this data temporarily (typically 30 to 60 days) strictly for
+                automated abuse and safety monitoring, after which it is deleted. Google does not use this data to train
+                AI models. For more details, see <a href="https://ai.google.dev/gemini-api/terms" target="_blank"
+                    rel="noopener">Google's Gemini API Terms of Service</a>.</p>
         </div>
 
         <div class="legal-section">
@@ -316,9 +364,12 @@
             <p>Your personal data is retained as follows:</p>
             <ul>
                 <li><strong>Active accounts:</strong> Data is retained for as long as your account is active.</li>
-                <li><strong>Semester archives:</strong> Past semester data is retained in your account until you manually delete it or request deletion.</li>
-                <li><strong>Account deletion:</strong> Upon request, we will delete all your personal data from our systems within 30 days.</li>
-                <li><strong>localStorage:</strong> Browser-cached data can be cleared by you at any time through your browser settings.</li>
+                <li><strong>Semester archives:</strong> Past semester data is retained in your account until you
+                    manually delete it or request deletion.</li>
+                <li><strong>Account deletion:</strong> Upon request, we will delete all your personal data from our
+                    systems within 30 days.</li>
+                <li><strong>localStorage:</strong> Browser-cached data can be cleared by you at any time through your
+                    browser settings.</li>
             </ul>
         </div>
 
@@ -339,13 +390,22 @@
                         <td>Firebase Authentication</td>
                         <td>Google LLC</td>
                         <td>User authentication</td>
-                        <td><a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">View</a></td>
+                        <td><a href="https://firebase.google.com/support/privacy" target="_blank"
+                                rel="noopener">View</a></td>
                     </tr>
                     <tr>
                         <td>Cloud Firestore</td>
                         <td>Google LLC</td>
                         <td>Data storage and sync</td>
-                        <td><a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">View</a></td>
+                        <td><a href="https://firebase.google.com/support/privacy" target="_blank"
+                                rel="noopener">View</a></td>
+                    </tr>
+                    <tr>
+                        <td>Google Gemini API</td>
+                        <td>Google LLC</td>
+                        <td>AI chatbot responses and timetable image scanning (OCR)</td>
+                        <td><a href="https://ai.google.dev/gemini-api/terms" target="_blank"
+                                rel="noopener">View</a></td>
                     </tr>
                     <tr>
                         <td>Google Analytics</td>
@@ -354,23 +414,39 @@
                         <td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">View</a></td>
                     </tr>
                     <tr>
+                        <td>EmailJS</td>
+                        <td>EmailJS</td>
+                        <td>Sending welcome emails upon registration</td>
+                        <td><a href="https://www.emailjs.com/legal/privacy-policy/" target="_blank"
+                                rel="noopener">View</a></td>
+                    </tr>
+                    <tr>
                         <td>Netlify</td>
                         <td>Netlify Inc.</td>
-                        <td>Web hosting</td>
+                        <td>Web hosting and serverless function execution</td>
                         <td><a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener">View</a></td>
                     </tr>
                 </tbody>
             </table>
-            <p>We do <strong>not</strong> sell, trade, or rent your personal information to any third party. Data shared with the above services is limited to what is necessary for the Service to function.</p>
+            <p>We do <strong>not</strong> sell, trade, or rent your personal information to any third party. Data shared
+                with the above services is limited to what is necessary for the Service to function.</p>
         </div>
 
         <div class="legal-section">
             <h2>6. Cookies & Local Storage</h2>
             <p>AttenDO uses the following client-side storage mechanisms:</p>
             <ul>
-                <li><strong>localStorage:</strong> Used to cache your attendance data, timetable, and preferences for offline access and faster loading. This data stays on your device and is not transmitted to third parties.</li>
-                <li><strong>Google Analytics cookies:</strong> Used to distinguish users and track anonymous session data. You can opt out of Google Analytics by installing the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google Analytics Opt-out Browser Add-on</a>.</li>
+                <li><strong>localStorage:</strong> Used to cache your attendance data, timetable, and preferences for
+                    offline access and faster loading. This data stays on your device and is not transmitted to third
+                    parties.</li>
+                <li><strong>Google Analytics cookies:</strong> Used to distinguish users and track anonymous session
+                    data. You can opt out of Google Analytics by installing the <a
+                        href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">Google Analytics
+                        Opt-out Browser Add-on</a>.</li>
                 <li><strong>Firebase cookies:</strong> Used to maintain your authentication session.</li>
+                <li><strong>Notification API:</strong> AttenDO may request your browser's permission to send push
+                    notifications for class reminders and attendance alerts. You can revoke this permission at any time
+                    through your browser settings. No notification data is transmitted to third parties.</li>
             </ul>
         </div>
 
@@ -378,44 +454,66 @@
             <h2>7. Your Rights</h2>
             <p>You have the following rights regarding your personal data:</p>
             <ul>
-                <li><strong>Access:</strong> You can view all your data within the app at any time (Dashboard, Settings).</li>
-                <li><strong>Export:</strong> You can export all your data as a JSON file via <em>Settings → Data Management → Export Backup</em>.</li>
-                <li><strong>Correction:</strong> You can update your personal information through the app's settings.</li>
-                <li><strong>Deletion:</strong> You can request complete deletion of your account and all associated data by contacting us.</li>
-                <li><strong>Data Portability:</strong> The JSON export provides your data in a portable, machine-readable format.</li>
+                <li><strong>Access:</strong> You can view all your data within the app at any time (Dashboard,
+                    Settings).</li>
+                <li><strong>Export:</strong> You can export your attendance data in multiple formats — <strong>CSV</strong>,
+                    <strong>PDF</strong>, or <strong>JSON</strong> — via <em>Settings → Semester Management</em> and
+                    <em>Settings → Data Management</em>.</li>
+                <li><strong>Correction:</strong> You can update your personal information through the app's settings.
+                </li>
+                <li><strong>Deletion:</strong> You can request complete deletion of your account and all associated data
+                    by contacting us.</li>
+                <li><strong>Data Portability:</strong> The JSON export provides your data in a portable,
+                    machine-readable format. CSV and PDF exports provide human-readable attendance reports.</li>
             </ul>
-            <p>To exercise any of these rights, please contact us at <a href="mailto:support.attendo@gmail.com">support.attendo@gmail.com</a>.</p>
+            <p>To exercise any of these rights, please contact us at <a
+                    href="mailto:support.attendo@gmail.com">support.attendo@gmail.com</a>.</p>
         </div>
 
         <div class="legal-section">
             <h2>8. Children's Privacy</h2>
-            <p>AttenDO is designed for students and is not specifically directed at children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child under 13 has provided us with personal information, please contact us at <a href="mailto:support.attendo@gmail.com">support.attendo@gmail.com</a>, and we will promptly delete such information.</p>
+            <p>AttenDO is designed for students and is not specifically directed at children under the age of 13. We do
+                not knowingly collect personal information from children under 13. If you are a parent or guardian and
+                believe your child under 13 has provided us with personal information, please contact us at <a
+                    href="mailto:support.attendo@gmail.com">support.attendo@gmail.com</a>, and we will promptly delete
+                such information.</p>
         </div>
 
         <div class="legal-section">
             <h2>9. International Users (GDPR)</h2>
-            <p>If you are accessing AttenDO from the European Economic Area (EEA), United Kingdom, or other jurisdictions with data protection laws, you have additional rights:</p>
+            <p>If you are accessing AttenDO from the European Economic Area (EEA), United Kingdom, or other
+                jurisdictions with data protection laws, you have additional rights:</p>
             <ul>
-                <li><strong>Legal basis for processing:</strong> We process your data based on your consent (provided at account creation) and our legitimate interest in providing the Service.</li>
-                <li><strong>Data transfers:</strong> Your data may be transferred to and processed in the United States by Google LLC (Firebase, Analytics). These transfers are governed by Google's Standard Contractual Clauses.</li>
-                <li><strong>Right to withdraw consent:</strong> You may withdraw your consent at any time by deleting your account.</li>
-                <li><strong>Right to lodge a complaint:</strong> You have the right to lodge a complaint with your local data protection authority.</li>
+                <li><strong>Legal basis for processing:</strong> We process your data based on your consent (provided at
+                    account creation) and our legitimate interest in providing the Service.</li>
+                <li><strong>Data transfers:</strong> Your data may be transferred to and processed in the United States
+                    by Google LLC (Firebase, Analytics). These transfers are governed by Google's Standard Contractual
+                    Clauses.</li>
+                <li><strong>Right to withdraw consent:</strong> You may withdraw your consent at any time by deleting
+                    your account.</li>
+                <li><strong>Right to lodge a complaint:</strong> You have the right to lodge a complaint with your local
+                    data protection authority.</li>
             </ul>
         </div>
 
         <div class="legal-section">
             <h2>10. Changes to This Policy</h2>
-            <p>We may update this Privacy Policy from time to time. When we make significant changes, we will notify users by updating the "Last Updated" date at the top of this page. We encourage you to review this Privacy Policy periodically.</p>
+            <p>We may update this Privacy Policy from time to time. When we make significant changes, we will notify
+                users by updating the "Last Updated" date at the top of this page. We encourage you to review this
+                Privacy Policy periodically.</p>
             <p>Continued use of the Service after changes constitutes acceptance of the updated policy.</p>
         </div>
 
         <div class="legal-section">
             <h2>11. Contact Us</h2>
-            <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact us:</p>
+            <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data,
+                please contact us:</p>
             <div class="legal-highlight">
                 <p>
-                    📧 <strong>Email:</strong> <a href="mailto:support.attendo@gmail.com">support.attendo@gmail.com</a><br>
-                    🌐 <strong>Website:</strong> <a href="https://attendotracker.netlify.app">attendotracker.netlify.app</a>
+                    📧 <strong>Email:</strong> <a
+                        href="mailto:support.attendo@gmail.com">support.attendo@gmail.com</a><br>
+                    🌐 <strong>Website:</strong> <a
+                        href="https://attendotracker.netlify.app">attendotracker.netlify.app</a>
                 </p>
             </div>
         </div>
@@ -425,7 +523,8 @@
             <p style="margin-top: var(--space-sm);">
                 <a href="terms.html" style="color: var(--accent-primary); text-decoration: none;">Terms of Service</a>
                 &nbsp;·&nbsp;
-                <a href="privacy.html" style="color: var(--accent-primary); text-decoration: none; opacity: 0.5;">Privacy Policy</a>
+                <a href="privacy.html"
+                    style="color: var(--accent-primary); text-decoration: none; opacity: 0.5;">Privacy Policy</a>
             </p>
         </div>
     </div>
