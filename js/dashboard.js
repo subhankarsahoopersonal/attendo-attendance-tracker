@@ -38,8 +38,11 @@ const DashboardUI = {
   handleDownloadClick(event) {
     // Save that the user clicked download
     localStorage.setItem('v2_4_downloaded', '1');
-    this.closeUpdatePopup();
-    // They will be redirected by the href of the anchor tag
+    
+    // Delay closing so the browser has time to trigger the download/intent
+    setTimeout(() => {
+      this.closeUpdatePopup();
+    }, 500);
   },
 
   /**
