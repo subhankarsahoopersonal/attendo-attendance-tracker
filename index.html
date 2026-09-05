@@ -695,6 +695,7 @@
               downloadBtn.addEventListener("click", async () => {
                 const apkUrl = "https://github.com/subhankarsahoopersonal/attendo-attendance-tracker/releases/download/v2.4/AttenDO_v2.4.apk";
                 
+                let shared = false;
                 try {
                   // Triggers native Android UI over the WebView. User can select Chrome.
                   if (navigator.share) {
@@ -703,21 +704,52 @@
                       text: 'Tap Chrome/Browser to download the update:',
                       url: apkUrl
                     });
-                  } else {
-                    // Failsafe fallback
-                    await navigator.clipboard.writeText(apkUrl);
-                    alert("Link copied! Open Google Chrome and paste to download.");
+                    shared = true;
                   }
                 } catch (err) {
                   console.log("Share cancelled or failed", err);
                 }
 
+                // If share wasn't available or was cancelled, copy to clipboard and animate the button
+                if (!shared) {
+                  try {
+                    await navigator.clipboard.writeText(apkUrl);
+                  } catch (e) {
+                    // Manual fallback for older WebViews
+                    const ta = document.createElement('textarea');
+                    ta.value = apkUrl;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                  }
+
+                  // Animate button to success state
+                  downloadBtn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+                  downloadBtn.style.boxShadow = '0 6px 18px rgba(34, 197, 94, 0.35)';
+                  downloadBtn.style.transform = 'scale(0.96)';
+                  downloadBtn.innerHTML = '✅ Link Copied!';
+                  
+                  setTimeout(() => {
+                    downloadBtn.style.transform = 'scale(1)';
+                  }, 150);
+
+                  // Show inline helper message below the button
+                  let helperMsg = modal.querySelector('.update-helper-msg');
+                  if (!helperMsg) {
+                    helperMsg = document.createElement('p');
+                    helperMsg.className = 'update-helper-msg';
+                    helperMsg.style.cssText = 'color: #22c55e; font-size: 13px; font-weight: 600; margin: 14px 0 0 0; line-height: 1.5; opacity: 0; transition: opacity 0.3s ease;';
+                    helperMsg.textContent = 'Open Google Chrome and paste the link in the address bar to download.';
+                    downloadBtn.parentElement.appendChild(helperMsg);
+                  }
+                  setTimeout(() => { helperMsg.style.opacity = '1'; }, 50);
+                }
+
                 // Set permanent flag so popup never shows again
                 localStorage.setItem('v24_download_clicked', 'true');
-                
-                // Hide modal to let user continue
-                modal.style.display = "none";
-                document.body.style.overflow = "auto";
               });
             }
           }
