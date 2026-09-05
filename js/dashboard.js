@@ -13,36 +13,6 @@ const DashboardUI = {
     this.renderToday();
     this.renderSubjectStats();
     this.setupEventListeners();
-    this.showUpdatePopup();
-  },
-
-  showUpdatePopup() {
-    const downloaded = localStorage.getItem('v2_4_downloaded');
-    // If the user already clicked download before, do not show it again
-    if (downloaded === '1') return;
-
-    // Show the popup overlay
-    const overlay = document.getElementById('update-popup-overlay');
-    if (overlay) {
-      overlay.classList.add('active');
-    }
-  },
-
-  closeUpdatePopup() {
-    const overlay = document.getElementById('update-popup-overlay');
-    if (overlay) {
-      overlay.classList.remove('active');
-    }
-  },
-
-  handleDownloadClick(event) {
-    // Save that the user clicked download
-    localStorage.setItem('v2_4_downloaded', '1');
-    
-    // Delay closing so the browser has time to trigger the download/intent
-    setTimeout(() => {
-      this.closeUpdatePopup();
-    }, 500);
   },
 
   /**

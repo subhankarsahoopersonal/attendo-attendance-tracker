@@ -608,24 +608,36 @@
                 </div>
             </div>
         </div>
-        <!-- Update Popup -->
-        <div class="custom-dialog-overlay" id="update-popup-overlay">
-            <div class="custom-dialog" style="text-align: center; padding: 32px 24px 24px 24px; position: relative;">
-                <button class="update-popup-close-icon" onclick="DashboardUI.closeUpdatePopup()" style="position: absolute; top: 12px; right: 12px; background: transparent; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; padding: 4px; line-height: 1;" title="Close">✕</button>
-                <h3
-                    style="font-size: 1.5rem; font-family: 'Atomic Age', cursive; font-weight: bold; margin-bottom: 12px; color: #ffffff;">
-                    Update Available (v2.4)</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 24px;">An urgent update is available. Please
-                    download the latest version to access new features and improvements.</p>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <!-- Update href with the actual download link if known -->
-                    <a href="intent://github.com/subhankarsahoopersonal/attendo-attendance-tracker/releases/download/v2.4/AttenDO_v2.4.apk#Intent;scheme=https;action=android.intent.action.VIEW;end;"
-                        target="_blank" class="btn btn-primary" id="update-download-btn"
-                        onclick="DashboardUI.handleDownloadClick(event)"
-                        style="text-decoration: none; display: flex; justify-content: center; align-items: center; padding: 12px; color: white !important;">Download
-                        Now 🚀</a>
-                </div>
+        <!-- Urgent v2.4 Update Overlay -->
+        <div id="urgentUpdateModal" style="display: none; position: fixed; inset: 0; z-index: 999999; background: rgba(10, 10, 15, 0.88); backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;">
+          <div style="background: #181820; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; max-width: 420px; width: 100%; padding: 28px 24px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.6); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; position: relative;">
+            
+            <!-- Close Button -->
+            <button id="closeUpdateModal" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: #888; font-size: 28px; cursor: pointer; line-height: 1;">&times;</button>
+
+            <!-- Warning Icon -->
+            <div style="width: 56px; height: 56px; background: rgba(245, 176, 65, 0.15); border: 1px solid rgba(245, 176, 65, 0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px auto; font-size: 26px;">
+              ⚠️
             </div>
+
+            <h2 style="color: #ffffff; margin: 0 0 8px 0; font-size: 22px; font-weight: 700;">Update Required</h2>
+            <div style="display: inline-block; background: #7b61ff; color: #ffffff; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; margin-bottom: 16px;">
+              v2.4 is Live
+            </div>
+
+            <p style="color: #b0b0c0; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+              You are running an outdated version. To update, tap below to send the download link to your browser.
+            </p>
+
+            <!-- Download CTA Button (Not an anchor tag) -->
+            <button id="downloadUpdateBtn" style="display: block; width: 100%; padding: 14px; background: linear-gradient(135deg, #7b61ff 0%, #a555ec 100%); color: #ffffff; font-size: 15px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; box-shadow: 0 6px 18px rgba(123, 97, 255, 0.35);">
+              Get Download Link 🚀
+            </button>
+
+            <p style="color: #6d6d80; font-size: 11px; margin: 16px 0 0 0; line-height: 1.4;">
+              Clean install recommended: Uninstall v2.3 before opening the v2.4 installer.
+            </p>
+          </div>
         </div>
 
     </div>
@@ -647,6 +659,67 @@
     <script src="js/dashboard.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        (function() {
+          const isAndroidWebView = /wv|Android.*Version\/[0-9]\.[0-9]/i.test(navigator.userAgent) || window.AndroidBridge || window.AttendoApp;
+          const urlParams = new URLSearchParams(window.location.search);
+          const isV24 = urlParams.get('v') === '2.4' || localStorage.getItem('attendo_app_version') === '2.4';
+          
+          // Logic 1: Check if the user has EVER tapped the download button
+          const hasClickedDownload = localStorage.getItem('v24_download_clicked') === 'true';
+
+          // Only show if they are on WebView, NOT on v2.4, and haven't triggered a download yet
+          if (isAndroidWebView && !isV24 && !hasClickedDownload) {
+            const modal = document.getElementById("urgentUpdateModal");
+            const closeBtn = document.getElementById("closeUpdateModal");
+            const downloadBtn = document.getElementById("downloadUpdateBtn");
+            
+            if (modal) {
+              modal.style.display = "flex";
+              document.body.style.overflow = "hidden";
+            }
+
+            // Logic 2: Tapping close merely hides it. It WILL show again on next app launch.
+            if (closeBtn) {
+              closeBtn.addEventListener("click", () => {
+                modal.style.display = "none";
+                document.body.style.overflow = "auto";
+              });
+            }
+
+            // Logic 3: Tapping download bypasses WebView and permanently prevents popup from showing again
+            if (downloadBtn) {
+              downloadBtn.addEventListener("click", async () => {
+                const apkUrl = "https://github.com/subhankarsahoopersonal/attendo-attendance-tracker/releases/download/v2.4/AttenDO_v2.4.apk";
+                
+                try {
+                  // Triggers native Android UI over the WebView. User can select Chrome.
+                  if (navigator.share) {
+                    await navigator.share({
+                      title: 'AttenDO v2.4 Update',
+                      text: 'Tap Chrome/Browser to download the update:',
+                      url: apkUrl
+                    });
+                  } else {
+                    // Failsafe fallback
+                    await navigator.clipboard.writeText(apkUrl);
+                    alert("Link copied! Open Google Chrome and paste to download.");
+                  }
+                } catch (err) {
+                  console.log("Share cancelled or failed", err);
+                }
+
+                // Set permanent flag so popup never shows again
+                localStorage.setItem('v24_download_clicked', 'true');
+                
+                // Hide modal to let user continue
+                modal.style.display = "none";
+                document.body.style.overflow = "auto";
+              });
+            }
+          }
+        })();
+    </script>
 </body>
 
 </html>
