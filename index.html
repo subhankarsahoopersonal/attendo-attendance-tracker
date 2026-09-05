@@ -608,6 +608,25 @@
                 </div>
             </div>
         </div>
+        <!-- Update Popup -->
+        <div class="custom-dialog-overlay" id="update-popup-overlay">
+            <div class="custom-dialog" style="text-align: center; padding: 32px 24px 24px 24px; position: relative;">
+                <button class="update-popup-close-icon" onclick="DashboardUI.closeUpdatePopup()" style="position: absolute; top: 12px; right: 12px; background: transparent; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; padding: 4px; line-height: 1;" title="Close">✕</button>
+                <h3
+                    style="font-size: 1.5rem; font-family: 'Atomic Age', cursive; font-weight: bold; margin-bottom: 12px; color: #ffffff;">
+                    Update Available (v2.4)</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">An urgent update is available. Please
+                    download the latest version to access new features and improvements.</p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Update href with the actual download link if known -->
+                    <a href="https://github.com/subhankarsahoopersonal/attendo-attendance-tracker/releases/download/v2.4/AttenDO_v2.4.apk"
+                        target="_blank" class="btn btn-primary" id="update-download-btn"
+                        onclick="DashboardUI.handleDownloadClick(event)"
+                        style="text-decoration: none; display: flex; justify-content: center; align-items: center; padding: 12px;">Download
+                        Now 🚀</a>
+                </div>
+            </div>
+        </div>
 
     </div>
 
