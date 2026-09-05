@@ -677,6 +677,9 @@
             if (modal) {
               modal.style.display = "flex";
               document.body.style.overflow = "hidden";
+              // Prevent scrolling behind the overlay
+              modal.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+              modal.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
             }
 
             // Logic 2: Tapping close merely hides it. It WILL show again on next app launch.
