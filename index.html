@@ -46,6 +46,9 @@
     <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
     <link rel="icon" href="assets/logo-compressed.png" type="image/png">
 
+    <!-- Google reCAPTCHA v2 -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
 
     <!-- Mobile Drag-and-Drop Polyfill -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
@@ -134,10 +137,11 @@
                     <input type="text" id="auth-name" class="form-input" placeholder="Full Name">
                 </div>
                 <div class="form-group">
-                    <input type="email" id="auth-email" class="form-input" placeholder="Email address" required>
+                    <input type="email" id="auth-email" class="form-input" placeholder="Email address" required oninput="validateEmail()">
+                    <div id="email-error" class="form-error">Please enter a valid email address.</div>
                 </div>
                 <div class="form-group" style="position: relative;">
-                    <input type="password" id="auth-password" class="form-input" placeholder="Password" required>
+                    <input type="password" id="auth-password" class="form-input" placeholder="Password" required oninput="checkPasswordStrength()">
                     <button type="button" class="password-toggle-btn"
                         onclick="togglePasswordVisibility('auth-password', this)" title="Toggle password visibility">
                         <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -146,7 +150,19 @@
                             <circle cx="12" cy="12" r="3"></circle>
                         </svg>
                     </button>
+                    <div id="password-strength-container" style="display: none;">
+                        <div class="password-strength">
+                            <div class="strength-bar" id="str-1"></div>
+                            <div class="strength-bar" id="str-2"></div>
+                            <div class="strength-bar" id="str-3"></div>
+                            <div class="strength-bar" id="str-4"></div>
+                        </div>
+                        <div class="strength-text" id="strength-text">Weak</div>
+                    </div>
+                    <div id="password-error" class="form-error">Password must be at least 6 characters.</div>
                 </div>
+                <!-- reCAPTCHA v2 (Invisible/Test Key) -->
+                <div id="recaptcha-container" class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" style="margin-bottom: 1rem; display: none; justify-content: center;"></div>
                 <p class="forgot-password" id="forgot-password-link">
                     <a href="#" onclick="handleForgotPassword(event)">Forgot password?</a>
                 </p>
@@ -191,12 +207,80 @@
             // Clear any messages when switching mode
             document.getElementById('auth-error').classList.add('hidden');
             document.getElementById('auth-success').classList.add('hidden');
+            
+            // Show/hide UI specific to Sign Up
+            document.getElementById('password-strength-container').style.display = isSignUp ? 'block' : 'none';
+            document.getElementById('recaptcha-container').style.display = isSignUp ? 'flex' : 'none';
+            if (!isSignUp) {
+                document.getElementById('email-error').style.display = 'none';
+                document.getElementById('password-error').style.display = 'none';
+            }
         }
+        
+        function validateEmail() {
+            const email = document.getElementById('auth-email').value;
+            const error = document.getElementById('email-error');
+            const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+            error.style.display = (email && !isValid) ? 'block' : 'none';
+            return isValid;
+        }
+
+        function checkPasswordStrength() {
+            if (!isSignUp) return true;
+            const password = document.getElementById('auth-password').value;
+            const error = document.getElementById('password-error');
+            const bars = [document.getElementById('str-1'), document.getElementById('str-2'), document.getElementById('str-3'), document.getElementById('str-4')];
+            const text = document.getElementById('strength-text');
+            
+            error.style.display = (password && password.length < 6) ? 'block' : 'none';
+            
+            let strength = 0;
+            if (password.length >= 6) strength++;
+            if (password.length >= 10) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9!@#\$%\^&\*]/.test(password)) strength++;
+
+            bars.forEach(b => b.style.background = 'var(--bg-card)');
+            if (password.length === 0) {
+                text.textContent = '';
+                return false;
+            }
+
+            const colors = ['#ef4444', '#eab308', '#22c55e', '#22c55e'];
+            const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+            
+            for (let i = 0; i < strength; i++) {
+                bars[i].style.background = colors[strength - 1];
+            }
+            text.textContent = labels[strength - 1] || 'Weak';
+            text.style.color = colors[strength - 1] || '#ef4444';
+            
+            return strength >= 1;
+        }
+
         function handleEmailAuth() {
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
-            if (!email || !password) return;
+            
+            if (!email || !password) {
+                AuthManager.showError('Please fill in all fields.');
+                return;
+            }
+            if (!validateEmail()) {
+                AuthManager.showError('Please enter a valid email address.');
+                return;
+            }
+
             if (isSignUp) {
+                if (password.length < 6) {
+                    AuthManager.showError('Password must be at least 6 characters long.');
+                    return;
+                }
+                const recaptchaResponse = grecaptcha.getResponse();
+                if (!recaptchaResponse) {
+                    AuthManager.showError('Please complete the reCAPTCHA validation.');
+                    return;
+                }
                 const name = document.getElementById('auth-name').value;
                 AuthManager.signUpWithEmail(email, password, name);
             } else {
@@ -208,6 +292,10 @@
             const email = document.getElementById('auth-email').value;
             if (!email) {
                 AuthManager.showError('Please enter your email address first.');
+                return;
+            }
+            if (!validateEmail()) {
+                AuthManager.showError('Please enter a valid email address.');
                 return;
             }
             AuthManager.sendPasswordResetEmail(email);
@@ -787,6 +875,27 @@
                 }
             }
         })();
+    </script>
+
+    <!-- Cookie Consent Banner -->
+    <div id="cookie-banner" class="cookie-banner">
+        <p>We use cookies to improve your experience and for analytics. By using our site, you agree to our <a href="privacy.html" target="_blank">Privacy Policy</a>.</p>
+        <div class="cookie-actions">
+            <button class="btn btn-primary btn-sm" onclick="acceptCookies()">Got it</button>
+        </div>
+    </div>
+    
+    <script>
+        // Cookie Consent Logic
+        if (!localStorage.getItem('cookies_accepted')) {
+            setTimeout(() => {
+                document.getElementById('cookie-banner').classList.add('show');
+            }, 1500);
+        }
+        function acceptCookies() {
+            localStorage.setItem('cookies_accepted', 'true');
+            document.getElementById('cookie-banner').classList.remove('show');
+        }
     </script>
 </body>
 

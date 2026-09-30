@@ -5006,3 +5006,69 @@ select.form-input option {
         background-color: transparent;
     }
 }
+
+/* ========================================
+   Cookie Consent Banner
+   ======================================== */
+.cookie-banner {
+    position: fixed;
+    bottom: -100px;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    transition: bottom 0.4s ease;
+    opacity: 0;
+}
+.cookie-banner.show {
+    bottom: 0;
+    opacity: 1;
+}
+.cookie-banner p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+.cookie-banner a {
+    color: var(--accent-primary);
+    text-decoration: underline;
+}
+.cookie-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+/* ========================================
+   Form Validation & Password Strength
+   ======================================== */
+.form-error {
+    color: var(--color-danger);
+    font-size: 0.8rem;
+    margin-top: 4px;
+    display: none;
+    text-align: left;
+}
+.password-strength {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+}
+.strength-bar {
+    height: 4px;
+    flex: 1;
+    background: var(--bg-card);
+    border-radius: 2px;
+    transition: var(--transition-fast);
+}
+.strength-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: 4px;
+}
