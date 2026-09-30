@@ -1,6 +1,18 @@
 [functions]
   directory = "netlify/functions"
 
+# Asset optimization (CSS/JS minification, image compression)
+[build.processing]
+  skip_processing = false
+[build.processing.css]
+  bundle = true
+  minify = true
+[build.processing.js]
+  bundle = true
+  minify = true
+[build.processing.images]
+  compress = true
+
 [dev]
   publish = "."
   port = 8888
