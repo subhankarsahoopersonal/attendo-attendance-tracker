@@ -5,6 +5,41 @@
   publish = "."
   port = 8888
 
+# Force HTTPS
+[[redirects]]
+  from = "http://attendotracker.netlify.app/*"
+  to = "https://attendotracker.netlify.app/:splat"
+  status = 301
+  force = true
+
+# Security headers for all routes
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Cache static assets aggressively
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# .well-known directory
 [[headers]]
   for = "/.well-known/*"
   [headers.values]

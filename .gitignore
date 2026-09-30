@@ -29,3 +29,9 @@ test-api.js
 
 # Audit reports
 audit.md
+
+# Build scripts
+scripts/
+
+# Original uncompressed logo (2.3 MB)
+assets/logo-original.png

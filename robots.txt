@@ -1,0 +1,11 @@
+# AttenDO — Attendance Tracker
+# https://attendotracker.netlify.app
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://attendotracker.netlify.app/sitemap.xml
+
+# Block internal/dev paths
+Disallow: /.netlify/
